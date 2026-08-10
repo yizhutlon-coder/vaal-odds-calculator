@@ -10,6 +10,9 @@ A Path of Exile 1 calculator for the weighted chance of hitting a specific equip
 - Multiplies the target's share of the eligible pool by the Vaal Orb's 25% implicit outcome
 - Models the Locus of Corruption's four equal outcomes
 - Calculates the chance a target appears in either double-corruption slot, excluding the first roll's modifier group from the second
+- Projects cost per attempt, average spend, and 50%/90% budgets from editable Chaos prices
+- Compares the projected average gamble with an optional finished-item asking price
+- Reminds Locus buyers to verify both the tier-3 room and an open route from the Temple entrance
 - Shows average attempts and the attempts needed for 50% and 90% cumulative chances
 
 The dataset contains 238 active equipment corruption rows and was reviewed against the PoE Wiki on August 9, 2026.

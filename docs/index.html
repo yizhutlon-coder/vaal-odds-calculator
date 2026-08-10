@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Calculate weighted Vaal Orb and Locus of Corruption implicit odds for Path of Exile 1 equipment." />
+    <meta name="description" content="Calculate weighted Vaal Orb and Locus of Corruption implicit odds and projected costs for Path of Exile 1 equipment." />
     <title>Vaal Odds &mdash; PoE Corruption Calculator</title>
     <link rel="icon" href="favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -83,21 +83,54 @@
         </div>
       </section>
 
+      <section class="cost-shell" aria-label="Corruption cost calculator">
+        <div class="cost-inputs">
+          <div class="section-kicker"><span>03</span> Price the gamble</div>
+          <h2>What does each try cost?</h2>
+          <p class="cost-intro">Enter current trade prices in Chaos. Rates are editable because the market changes.</p>
+
+          <div class="cost-fields">
+            <label><span>Item price</span><div class="currency-input"><input id="item-cost" type="number" min="0" step="any" inputmode="decimal" value="10" /><b>Chaos</b></div></label>
+            <label id="vaal-cost-row"><span>Vaal Orb price</span><div class="currency-input"><input id="vaal-cost" type="number" min="0" step="any" inputmode="decimal" value="1" /><b>Chaos</b></div></label>
+            <label id="locus-cost-row" hidden><span>Locus of Corruption cost</span><div class="currency-input"><input id="locus-cost" type="number" min="0" step="any" inputmode="decimal" value="100" /><b>Chaos</b></div></label>
+            <label><span>Finished item price <small>optional</small></span><div class="currency-input"><input id="finished-cost" type="number" min="0" step="any" inputmode="decimal" placeholder="Compare asking price" /><b>Chaos</b></div></label>
+          </div>
+
+          <div id="locus-reminder" class="locus-reminder" hidden>
+            <strong>Check the temple before you buy.</strong>
+            <span>Confirm it contains the tier-3 <b>Locus of Corruption</b> and that open doors make the room reachable from the Temple entrance.</span>
+          </div>
+        </div>
+
+        <div class="cost-results" aria-live="polite">
+          <div class="cost-result-head"><span>PROJECTED COST</span><small id="cost-formula-label"></small></div>
+          <div class="cost-per-attempt"><span>Each attempt</span><strong id="cost-per-attempt"></strong></div>
+          <div class="cost-projections">
+            <div><span>Average spend</span><strong id="expected-cost"></strong><small id="expected-cost-meta"></small></div>
+            <div><span>50% chance budget</span><strong id="median-cost"></strong><small id="median-cost-meta"></small></div>
+            <div><span>90% chance budget</span><strong id="ninety-cost"></strong><small id="ninety-cost-meta"></small></div>
+          </div>
+          <div id="buy-comparison" class="buy-prompt">Enter a finished-item price to compare buying it against the average gamble.</div>
+          <p class="cost-caveat">Average spend is a long-run estimate, not a spending cap. It assumes every attempt needs a fresh item.</p>
+        </div>
+      </section>
+
       <section class="method-section">
         <div class="method-copy">
-          <div class="section-kicker"><span>03</span> Know the ritual</div>
+          <div class="section-kicker"><span>04</span> Know the ritual</div>
           <h2 id="method-title"></h2><p id="method-description"></p>
         </div>
         <div class="method-note"><span>Important</span><p>&ldquo;1 in X&rdquo; is a long-run average, not a guarantee. Standard equipment is modeled; special corruption-outcome items such as Sacrificial Garb and Glimpse of Chaos are excluded.</p></div>
       </section>
 
       <footer>
-        <div><strong>VAAL ODDS</strong><span>238 active equipment corruption rows &middot; reviewed 9 Aug 2026</span></div>
+        <div><strong>VAAL ODDS</strong><span>238 active equipment corruption rows &middot; reviewed 10 Aug 2026</span></div>
         <nav aria-label="Research sources">
           <a href="https://www.poewiki.net/wiki/Corrupted" target="_blank" rel="noreferrer">Corruption mechanics &#8599;</a>
           <a href="https://www.poewiki.net/wiki/Modifier" target="_blank" rel="noreferrer">Weighting rules &#8599;</a>
           <a href="https://www.poewiki.net/wiki/List_of_item_corruption_implicit_modifiers" target="_blank" rel="noreferrer">Modifier list &#8599;</a>
           <a href="https://www.poewiki.net/wiki/Locus_of_Corruption" target="_blank" rel="noreferrer">Locus outcomes &#8599;</a>
+          <a href="https://www.poewiki.net/wiki/The_Temple_of_Atzoatl" target="_blank" rel="noreferrer">Temple access &#8599;</a>
         </nav>
       </footer>
     </main>

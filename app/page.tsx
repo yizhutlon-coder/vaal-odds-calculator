@@ -67,6 +67,16 @@ function attemptsFor(probability: number, confidence: number) {
   return Math.ceil(Math.log(1 - confidence) / Math.log(1 - probability));
 }
 
+function costValue(value: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function formatChaos(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return "—";
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value)} Chaos`;
+}
+
 function targetInEitherSlotChance(pool: CorruptionMod[], target: CorruptionMod, base: BaseCategory) {
   const totalWeight = pool.reduce((sum, mod) => sum + weightFor(mod, base), 0);
   const targetWeight = weightFor(target, base);
@@ -90,6 +100,10 @@ export default function Home() {
   const [method, setMethod] = useState<CorruptionMethod>("vaal");
   const [baseId, setBaseId] = useState("ring");
   const [itemLevel, setItemLevel] = useState(86);
+  const [itemCostInput, setItemCostInput] = useState("10");
+  const [vaalCostInput, setVaalCostInput] = useState("1");
+  const [locusCostInput, setLocusCostInput] = useState("100");
+  const [finishedCostInput, setFinishedCostInput] = useState("");
   const base = BASES.find((entry) => entry.id === baseId) ?? BASES[6];
 
   const compatibleMods = useMemo(
@@ -117,6 +131,15 @@ export default function Home() {
   const median = attemptsFor(perAttemptChance, 0.5);
   const ninety = attemptsFor(perAttemptChance, 0.9);
   const attemptUnit = method === "locus" ? "altars" : "orbs";
+  const itemCost = costValue(itemCostInput);
+  const attemptCurrencyCost = method === "locus" ? costValue(locusCostInput) : costValue(vaalCostInput);
+  const costPerAttempt = itemCost + attemptCurrencyCost;
+  const expectedAttempts = perAttemptChance ? 1 / perAttemptChance : 0;
+  const expectedCost = expectedAttempts * costPerAttempt;
+  const medianCost = (median ?? 0) * costPerAttempt;
+  const ninetyCost = (ninety ?? 0) * costPerAttempt;
+  const finishedCost = costValue(finishedCostInput);
+  const comparisonDifference = Math.abs(expectedCost - finishedCost);
 
   function changeBase(nextId: string) {
     const nextBase = BASES.find((entry) => entry.id === nextId) ?? BASES[0];
@@ -249,9 +272,67 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="cost-shell" aria-label="Corruption cost calculator">
+        <div className="cost-inputs">
+          <div className="section-kicker"><span>03</span> Price the gamble</div>
+          <h2>What does each try cost?</h2>
+          <p className="cost-intro">Enter current trade prices in Chaos. Rates are editable because the market changes.</p>
+
+          <div className="cost-fields">
+            <label>
+              <span>Item price</span>
+              <div className="currency-input"><input type="number" min="0" step="any" inputMode="decimal" value={itemCostInput} onChange={(event) => setItemCostInput(event.target.value)} /><b>Chaos</b></div>
+            </label>
+            {method === "locus" ? (
+              <label>
+                <span>Locus of Corruption cost</span>
+                <div className="currency-input"><input type="number" min="0" step="any" inputMode="decimal" value={locusCostInput} onChange={(event) => setLocusCostInput(event.target.value)} /><b>Chaos</b></div>
+              </label>
+            ) : (
+              <label>
+                <span>Vaal Orb price</span>
+                <div className="currency-input"><input type="number" min="0" step="any" inputMode="decimal" value={vaalCostInput} onChange={(event) => setVaalCostInput(event.target.value)} /><b>Chaos</b></div>
+              </label>
+            )}
+            <label>
+              <span>Finished item price <small>optional</small></span>
+              <div className="currency-input"><input type="number" min="0" step="any" inputMode="decimal" placeholder="Compare asking price" value={finishedCostInput} onChange={(event) => setFinishedCostInput(event.target.value)} /><b>Chaos</b></div>
+            </label>
+          </div>
+
+          {method === "locus" && (
+            <div className="locus-reminder">
+              <strong>Check the temple before you buy.</strong>
+              <span>Confirm it contains the tier-3 <b>Locus of Corruption</b> and that open doors make the room reachable from the Temple entrance.</span>
+            </div>
+          )}
+        </div>
+
+        <div className="cost-results" aria-live="polite">
+          <div className="cost-result-head"><span>PROJECTED COST</span><small>{method === "locus" ? "item + Locus altar" : "item + 1 Vaal Orb"} per attempt</small></div>
+          <div className="cost-per-attempt"><span>Each attempt</span><strong>{formatChaos(costPerAttempt)}</strong></div>
+          <div className="cost-projections">
+            <div><span>Average spend</span><strong>{formatChaos(expectedCost)}</strong><small>{expectedAttempts ? `${expectedAttempts.toLocaleString(undefined, { maximumFractionDigits: 1 })} attempts on average` : "Target is not eligible"}</small></div>
+            <div><span>50% chance budget</span><strong>{formatChaos(medianCost)}</strong><small>{median ? `${median.toLocaleString()} attempts` : "Target is not eligible"}</small></div>
+            <div><span>90% chance budget</span><strong>{formatChaos(ninetyCost)}</strong><small>{ninety ? `${ninety.toLocaleString()} attempts` : "Target is not eligible"}</small></div>
+          </div>
+
+          {finishedCost > 0 && expectedCost > 0 ? (
+            <div className={`buy-verdict ${finishedCost <= expectedCost ? "buy-finished" : "gamble-cheaper"}`}>
+              <span>{finishedCost <= expectedCost ? "BUYING LOOKS CHEAPER" : "GAMBLING HAS THE LOWER AVERAGE"}</span>
+              <strong>{formatChaos(comparisonDifference)} difference</strong>
+              <p>{finishedCost <= expectedCost ? "The finished item's asking price is below the gamble's average spend." : "The asking price is above the gamble's average spend—but luck can still run far over budget."}</p>
+            </div>
+          ) : (
+            <div className="buy-prompt">Enter a finished-item price to compare buying it against the average gamble.</div>
+          )}
+          <p className="cost-caveat">Average spend is a long-run estimate, not a spending cap. It assumes every attempt needs a fresh item.</p>
+        </div>
+      </section>
+
       <section className="method-section">
         <div className="method-copy">
-          <div className="section-kicker"><span>03</span> Know the ritual</div>
+          <div className="section-kicker"><span>04</span> Know the ritual</div>
           <h2>{method === "locus" ? "Two rolls. No repeated group." : "Weighted, not evenly split."}</h2>
           {method === "locus" ? (
             <p>
@@ -277,12 +358,13 @@ export default function Home() {
       </section>
 
       <footer>
-        <div><strong>VAAL ODDS</strong><span>238 active equipment corruption rows · reviewed 9 Aug 2026</span></div>
+        <div><strong>VAAL ODDS</strong><span>238 active equipment corruption rows · reviewed 10 Aug 2026</span></div>
         <nav aria-label="Research sources">
           <a href="https://www.poewiki.net/wiki/Corrupted" target="_blank" rel="noreferrer">Corruption mechanics ↗</a>
           <a href="https://www.poewiki.net/wiki/Modifier" target="_blank" rel="noreferrer">Weighting rules ↗</a>
           <a href="https://www.poewiki.net/wiki/List_of_item_corruption_implicit_modifiers" target="_blank" rel="noreferrer">Modifier list ↗</a>
           <a href="https://www.poewiki.net/wiki/Locus_of_Corruption" target="_blank" rel="noreferrer">Locus outcomes ↗</a>
+          <a href="https://www.poewiki.net/wiki/The_Temple_of_Atzoatl" target="_blank" rel="noreferrer">Temple access ↗</a>
         </nav>
       </footer>
     </main>

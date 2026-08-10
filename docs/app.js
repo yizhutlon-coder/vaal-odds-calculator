@@ -27,7 +27,16 @@ const BASES = [
 ];
 
 const FAMILIES = ["Armour", "Jewellery", "One-handed weapons", "Two-handed weapons", "Other"];
-const state = { method: "vaal", baseId: "ring", itemLevel: 86, selectedId: "V2MaxPowerChargesCorrupted" };
+const state = {
+  method: "vaal",
+  baseId: "ring",
+  itemLevel: 86,
+  selectedId: "V2MaxPowerChargesCorrupted",
+  itemCost: "10",
+  vaalCost: "1",
+  locusCost: "100",
+  finishedCost: "",
+};
 const $ = (id) => document.getElementById(id);
 
 function weightFor(mod, base) {
@@ -50,6 +59,16 @@ function oneIn(value) {
 function attemptsFor(probability, confidence) {
   if (probability <= 0) return null;
   return Math.ceil(Math.log(1 - confidence) / Math.log(1 - probability));
+}
+
+function costValue(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function formatChaos(value) {
+  if (!Number.isFinite(value) || value <= 0) return "-";
+  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value)} Chaos`;
 }
 
 function targetInEitherSlotChance(pool, target, base) {
@@ -121,6 +140,14 @@ function render() {
   const ninety = attemptsFor(perAttemptChance, 0.9);
   const isLocus = state.method === "locus";
   const unit = isLocus ? "altars" : "orbs";
+  const itemCost = costValue(state.itemCost);
+  const attemptCurrencyCost = isLocus ? costValue(state.locusCost) : costValue(state.vaalCost);
+  const costPerAttempt = itemCost + attemptCurrencyCost;
+  const expectedAttempts = perAttemptChance ? 1 / perAttemptChance : 0;
+  const expectedCost = expectedAttempts * costPerAttempt;
+  const medianCost = (median || 0) * costPerAttempt;
+  const ninetyCost = (ninety || 0) * costPerAttempt;
+  const finishedCost = costValue(state.finishedCost);
 
   $("method-vaal").classList.toggle("active", !isLocus);
   $("method-locus").classList.toggle("active", isLocus);
@@ -153,6 +180,37 @@ function render() {
     ? "The altar has four equal outcomes. On the two-implicit outcome, the first modifier is selected by weight; then every modifier in that same group is removed before the second weighted roll. The calculator sums the chance your target lands in either slot, then multiplies it by the altar's 25% double-implicit outcome."
     : "First, item level removes locked implicits. Then the base's first matching tag supplies each modifier's weight; a zero-weight match excludes it. Your target's weight is divided by the full eligible pool, then multiplied by 25%.";
 
+  $("vaal-cost-row").hidden = isLocus;
+  $("locus-cost-row").hidden = !isLocus;
+  $("locus-reminder").hidden = !isLocus;
+  $("cost-formula-label").textContent = isLocus ? "item + Locus altar per attempt" : "item + 1 Vaal Orb per attempt";
+  $("cost-per-attempt").textContent = formatChaos(costPerAttempt);
+  $("expected-cost").textContent = formatChaos(expectedCost);
+  $("expected-cost-meta").textContent = expectedAttempts ? `${expectedAttempts.toLocaleString(undefined, { maximumFractionDigits: 1 })} attempts on average` : "Target is not eligible";
+  $("median-cost").textContent = formatChaos(medianCost);
+  $("median-cost-meta").textContent = median ? `${median.toLocaleString()} attempts` : "Target is not eligible";
+  $("ninety-cost").textContent = formatChaos(ninetyCost);
+  $("ninety-cost-meta").textContent = ninety ? `${ninety.toLocaleString()} attempts` : "Target is not eligible";
+
+  const comparison = $("buy-comparison");
+  if (finishedCost > 0 && expectedCost > 0) {
+    const buyingCheaper = finishedCost <= expectedCost;
+    const difference = Math.abs(expectedCost - finishedCost);
+    const label = document.createElement("span");
+    const amount = document.createElement("strong");
+    const copy = document.createElement("p");
+    comparison.className = `buy-verdict ${buyingCheaper ? "buy-finished" : "gamble-cheaper"}`;
+    label.textContent = buyingCheaper ? "BUYING LOOKS CHEAPER" : "GAMBLING HAS THE LOWER AVERAGE";
+    amount.textContent = `${formatChaos(difference)} difference`;
+    copy.textContent = buyingCheaper
+      ? "The finished item's asking price is below the gamble's average spend."
+      : "The asking price is above the gamble's average spend—but luck can still run far over budget.";
+    comparison.replaceChildren(label, amount, copy);
+  } else {
+    comparison.className = "buy-prompt";
+    comparison.textContent = "Enter a finished-item price to compare buying it against the average gamble.";
+  }
+
   const warning = $("level-warning");
   warning.hidden = targetEligible;
   warning.textContent = targetEligible ? "" : `Raise the item to level ${selected.level} or choose another corruption.`;
@@ -178,5 +236,8 @@ function setLevel(value) {
 
 $("level-input").addEventListener("input", (event) => setLevel(event.target.value));
 $("level-range").addEventListener("input", (event) => setLevel(event.target.value));
+for (const [id, key] of [["item-cost", "itemCost"], ["vaal-cost", "vaalCost"], ["locus-cost", "locusCost"], ["finished-cost", "finishedCost"]]) {
+  $(id).addEventListener("input", (event) => { state[key] = event.target.value; render(); });
+}
 fillBaseSelect();
 render();
