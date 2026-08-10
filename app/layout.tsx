@@ -16,7 +16,7 @@ const sans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Vaal Odds — PoE Corruption Calculator",
-  description: "Calculate the weighted chance of hitting a specific equipment corruption with a Vaal Orb in Path of Exile 1.",
+  description: "Calculate weighted Vaal Orb and Locus of Corruption implicit odds for Path of Exile 1 equipment.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

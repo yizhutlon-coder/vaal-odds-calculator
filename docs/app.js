@@ -27,7 +27,7 @@ const BASES = [
 ];
 
 const FAMILIES = ["Armour", "Jewellery", "One-handed weapons", "Two-handed weapons", "Other"];
-const state = { baseId: "ring", itemLevel: 86, selectedId: "V2MaxPowerChargesCorrupted" };
+const state = { method: "vaal", baseId: "ring", itemLevel: 86, selectedId: "V2MaxPowerChargesCorrupted" };
 const $ = (id) => document.getElementById(id);
 
 function weightFor(mod, base) {
@@ -42,7 +42,7 @@ function percent(value, digits = 3) {
 }
 
 function oneIn(value) {
-  if (value <= 0) return "—";
+  if (value <= 0) return "-";
   const denominator = 1 / value;
   return denominator < 100 ? `1 in ${denominator.toFixed(1)}` : `1 in ${Math.round(denominator).toLocaleString()}`;
 }
@@ -50,6 +50,20 @@ function oneIn(value) {
 function attemptsFor(probability, confidence) {
   if (probability <= 0) return null;
   return Math.ceil(Math.log(1 - confidence) / Math.log(1 - probability));
+}
+
+function targetInEitherSlotChance(pool, target, base) {
+  const totalWeight = pool.reduce((sum, mod) => sum + weightFor(mod, base), 0);
+  const targetWeight = weightFor(target, base);
+  if (!totalWeight || !targetWeight) return 0;
+  let chance = targetWeight / totalWeight;
+  for (const first of pool) {
+    if (first.id === target.id || first.group === target.group) continue;
+    const blockedGroupWeight = pool.filter((mod) => mod.group === first.group).reduce((sum, mod) => sum + weightFor(mod, base), 0);
+    const secondRollWeight = totalWeight - blockedGroupWeight;
+    if (secondRollWeight > 0) chance += (weightFor(first, base) / totalWeight) * (targetWeight / secondRollWeight);
+  }
+  return chance;
 }
 
 function compatibleMods(base) {
@@ -79,7 +93,7 @@ function fillCorruptionSelect(base) {
   for (const mod of mods) {
     const option = document.createElement("option");
     option.value = mod.id;
-    option.textContent = `${mod.stat}${mod.level > state.itemLevel ? ` — needs ilvl ${mod.level}` : ""}`;
+    option.textContent = `${mod.stat}${mod.level > state.itemLevel ? ` - needs ilvl ${mod.level}` : ""}`;
     select.append(option);
   }
   if (!mods.some((mod) => mod.id === state.selectedId)) state.selectedId = mods[0]?.id ?? "";
@@ -98,28 +112,46 @@ function render() {
   const poolWeight = eligiblePool.reduce((sum, mod) => sum + weightFor(mod, base), 0);
   const targetEligible = selected.level <= state.itemLevel;
   const targetWeight = targetEligible ? weightFor(selected, base) : 0;
-  const conditionalChance = poolWeight ? targetWeight / poolWeight : 0;
-  const perOrbChance = conditionalChance * 0.25;
-  const average = perOrbChance ? Math.ceil(1 / perOrbChance) : null;
-  const median = attemptsFor(perOrbChance, 0.5);
-  const ninety = attemptsFor(perOrbChance, 0.9);
+  const singleChance = poolWeight ? targetWeight / poolWeight : 0;
+  const doubleChance = targetEligible ? targetInEitherSlotChance(eligiblePool, selected, base) : 0;
+  const conditionalChance = state.method === "locus" ? doubleChance : singleChance;
+  const perAttemptChance = conditionalChance * 0.25;
+  const average = perAttemptChance ? Math.ceil(1 / perAttemptChance) : null;
+  const median = attemptsFor(perAttemptChance, 0.5);
+  const ninety = attemptsFor(perAttemptChance, 0.9);
+  const isLocus = state.method === "locus";
+  const unit = isLocus ? "altars" : "orbs";
 
+  $("method-vaal").classList.toggle("active", !isLocus);
+  $("method-locus").classList.toggle("active", isLocus);
+  $("method-vaal").setAttribute("aria-checked", String(!isLocus));
+  $("method-locus").setAttribute("aria-checked", String(isLocus));
   $("target-card").classList.toggle("target-locked", !targetEligible);
   $("target-status").textContent = targetEligible ? "TARGET IS IN THE POOL" : "TARGET IS LOCKED";
   $("target-stat").textContent = selected.stat;
-  $("target-meta").textContent = `Requires item level ${selected.level} · weight ${weightFor(selected, base).toLocaleString()}`;
+  $("target-meta").textContent = `Requires item level ${selected.level} | weight ${weightFor(selected, base).toLocaleString()}${isLocus ? " | target may be in either slot" : ""}`;
 
-  $("big-odds").textContent = oneIn(perOrbChance);
-  $("big-odds").classList.toggle("zero-odds", !perOrbChance);
-  $("big-percent").textContent = `${percent(perOrbChance)} exact chance`;
+  $("odds-label").textContent = `CHANCE PER ${isLocus ? "LOCUS ALTAR" : "VAAL ORB"}`;
+  $("big-odds").textContent = oneIn(perAttemptChance);
+  $("big-odds").classList.toggle("zero-odds", !perAttemptChance);
+  $("big-percent").textContent = `${percent(perAttemptChance)} exact chance`;
+  $("conditional-label").textContent = isLocus ? "Target in either slot" : "Target in pool";
   $("conditional-percent").textContent = percent(conditionalChance, 2);
-  $("orb-percent").textContent = percent(perOrbChance, 3);
-  $("average-attempts").textContent = average?.toLocaleString() ?? "—";
-  $("median-attempts").textContent = median?.toLocaleString() ?? "—";
-  $("ninety-attempts").textContent = ninety?.toLocaleString() ?? "—";
+  $("attempt-label").textContent = `Per ${isLocus ? "altar" : "orb"}`;
+  $("orb-percent").textContent = percent(perAttemptChance, 3);
+  $("average-attempts").textContent = average?.toLocaleString() ?? "-";
+  $("median-attempts").textContent = median?.toLocaleString() ?? "-";
+  $("ninety-attempts").textContent = ninety?.toLocaleString() ?? "-";
+  document.querySelectorAll(".attempt-unit").forEach((element) => { element.textContent = unit; });
   $("eligible-count").textContent = eligiblePool.length.toLocaleString();
   $("pool-weight").textContent = poolWeight.toLocaleString();
   $("target-weight").textContent = targetWeight.toLocaleString();
+  $("vaal-track").hidden = isLocus;
+  $("locus-track").hidden = !isLocus;
+  $("method-title").textContent = isLocus ? "Two rolls. No repeated group." : "Weighted, not evenly split.";
+  $("method-description").textContent = isLocus
+    ? "The altar has four equal outcomes. On the two-implicit outcome, the first modifier is selected by weight; then every modifier in that same group is removed before the second weighted roll. The calculator sums the chance your target lands in either slot, then multiplies it by the altar's 25% double-implicit outcome."
+    : "First, item level removes locked implicits. Then the base's first matching tag supplies each modifier's weight; a zero-weight match excludes it. Your target's weight is divided by the full eligible pool, then multiplied by 25%.";
 
   const warning = $("level-warning");
   warning.hidden = targetEligible;
@@ -127,17 +159,15 @@ function render() {
   $("level-range").style.setProperty("--level", `${state.itemLevel}%`);
 }
 
+$("method-vaal").addEventListener("click", () => { state.method = "vaal"; render(); });
+$("method-locus").addEventListener("click", () => { state.method = "locus"; render(); });
 $("base-select").addEventListener("change", (event) => {
   state.baseId = event.target.value;
   const base = BASES.find((entry) => entry.id === state.baseId);
   state.selectedId = compatibleMods(base)[0]?.id ?? "";
   render();
 });
-
-$("corruption-select").addEventListener("change", (event) => {
-  state.selectedId = event.target.value;
-  render();
-});
+$("corruption-select").addEventListener("change", (event) => { state.selectedId = event.target.value; render(); });
 
 function setLevel(value) {
   state.itemLevel = Math.min(100, Math.max(1, Number(value) || 1));
@@ -148,6 +178,5 @@ function setLevel(value) {
 
 $("level-input").addEventListener("input", (event) => setLevel(event.target.value));
 $("level-range").addEventListener("input", (event) => setLevel(event.target.value));
-
 fillBaseSelect();
 render();

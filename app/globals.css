@@ -141,6 +141,13 @@ main {
 .section-kicker::after { content: ""; height: 1px; flex: 1; background: currentColor; opacity: .22; }
 .section-kicker.light { color: #d5b26f; }
 .section-kicker.light span { color: #80796e; }
+.method-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: -12px 0 30px; }
+.method-toggle button { padding: 14px 15px; border: 1px solid #a69d8b; background: rgba(255,255,255,.22); color: #696156; text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, color .16s ease; }
+.method-toggle button:hover { border-color: var(--blood); }
+.method-toggle button.active { border-color: var(--blood); background: rgba(189,45,42,.09); color: var(--ink); box-shadow: inset 3px 0 var(--blood); }
+.method-toggle span, .method-toggle small { display: block; }
+.method-toggle span { font-family: var(--font-display), serif; font-size: 13px; font-weight: 700; }
+.method-toggle small { margin-top: 3px; color: #827a6e; font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .field-label { display: block; margin: 0 0 9px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .select-wrap { position: relative; }
 .select-wrap::after {
@@ -199,6 +206,10 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .outcome-track .outcome-hit { width: 25%; min-width: 98px; color: #f4e6ca; background: var(--blood-dark); }
 .outcome-track div:last-child { flex: 1; }
 .outcome-track span { font-size: 10px; letter-spacing: 0; }
+.outcome-track.locus-track { height: auto; min-height: 52px; display: grid; grid-template-columns: repeat(4, 1fr); }
+.outcome-track.locus-track div { min-width: 0; width: auto; padding: 9px 10px; gap: 4px; border-right: 1px solid #3a3731; line-height: 1.25; }
+.outcome-track.locus-track div:last-child { border-right: 0; }
+.outcome-track.locus-track .outcome-hit { min-width: 0; }
 .attempts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .attempts-grid > div { min-width: 0; padding: 16px 12px; border: 1px solid #3b3832; background: rgba(255,255,255,.018); }
 .attempts-grid span, .attempts-grid small { display: block; color: #8f887e; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
@@ -252,6 +263,8 @@ footer a:hover { color: var(--blood); }
   .attempts-grid > div { padding: 14px 8px; }
   .attempts-grid strong { font-size: 20px; }
   .attempts-grid span, .attempts-grid small { font-size: 8px; }
+  .outcome-track.locus-track { grid-template-columns: repeat(2, 1fr); }
+  .method-toggle { grid-template-columns: 1fr; }
   .method-section { margin-bottom: 76px; padding: 0 20px; }
   footer { margin: 0 18px; padding-left: 0; padding-right: 0; flex-direction: column; }
   footer nav { justify-content: flex-start; }

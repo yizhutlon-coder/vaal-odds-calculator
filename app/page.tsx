@@ -10,6 +10,8 @@ type BaseCategory = {
   tags: string[];
 };
 
+type CorruptionMethod = "vaal" | "locus";
+
 const BASES: BaseCategory[] = [
   { id: "helmet", label: "Helmet", family: "Armour", tags: ["helmet", "armour"] },
   { id: "body_armour", label: "Body Armour", family: "Armour", tags: ["body_armour", "armour"] },
@@ -65,7 +67,27 @@ function attemptsFor(probability: number, confidence: number) {
   return Math.ceil(Math.log(1 - confidence) / Math.log(1 - probability));
 }
 
+function targetInEitherSlotChance(pool: CorruptionMod[], target: CorruptionMod, base: BaseCategory) {
+  const totalWeight = pool.reduce((sum, mod) => sum + weightFor(mod, base), 0);
+  const targetWeight = weightFor(target, base);
+  if (!totalWeight || !targetWeight) return 0;
+
+  let chance = targetWeight / totalWeight;
+  for (const first of pool) {
+    if (first.id === target.id || first.group === target.group) continue;
+    const blockedGroupWeight = pool
+      .filter((mod) => mod.group === first.group)
+      .reduce((sum, mod) => sum + weightFor(mod, base), 0);
+    const secondRollWeight = totalWeight - blockedGroupWeight;
+    if (secondRollWeight > 0) {
+      chance += (weightFor(first, base) / totalWeight) * (targetWeight / secondRollWeight);
+    }
+  }
+  return chance;
+}
+
 export default function Home() {
+  const [method, setMethod] = useState<CorruptionMethod>("vaal");
   const [baseId, setBaseId] = useState("ring");
   const [itemLevel, setItemLevel] = useState(86);
   const base = BASES.find((entry) => entry.id === baseId) ?? BASES[6];
@@ -75,8 +97,7 @@ export default function Home() {
     [base],
   );
 
-  const preferredDefault =
-    compatibleMods.find((mod) => mod.id === "V2MaxPowerChargesCorrupted") ?? compatibleMods[0];
+  const preferredDefault = compatibleMods.find((mod) => mod.id === "V2MaxPowerChargesCorrupted") ?? compatibleMods[0];
   const [selectedId, setSelectedId] = useState(preferredDefault?.id ?? "");
   const selected = compatibleMods.find((mod) => mod.id === selectedId) ?? preferredDefault;
 
@@ -88,11 +109,14 @@ export default function Home() {
   const poolWeight = eligiblePool.reduce((sum, mod) => sum + weightFor(mod, base), 0);
   const targetEligible = Boolean(selected && selected.level <= itemLevel);
   const targetWeight = targetEligible && selected ? weightFor(selected, base) : 0;
-  const conditionalChance = poolWeight ? targetWeight / poolWeight : 0;
-  const perOrbChance = conditionalChance * IMPLICIT_OUTCOME_CHANCE;
-  const average = perOrbChance ? Math.ceil(1 / perOrbChance) : null;
-  const median = attemptsFor(perOrbChance, 0.5);
-  const ninety = attemptsFor(perOrbChance, 0.9);
+  const singleConditionalChance = poolWeight ? targetWeight / poolWeight : 0;
+  const doubleConditionalChance = targetEligible && selected ? targetInEitherSlotChance(eligiblePool, selected, base) : 0;
+  const conditionalChance = method === "locus" ? doubleConditionalChance : singleConditionalChance;
+  const perAttemptChance = conditionalChance * IMPLICIT_OUTCOME_CHANCE;
+  const average = perAttemptChance ? Math.ceil(1 / perAttemptChance) : null;
+  const median = attemptsFor(perAttemptChance, 0.5);
+  const ninety = attemptsFor(perAttemptChance, 0.9);
+  const attemptUnit = method === "locus" ? "altars" : "orbs";
 
   function changeBase(nextId: string) {
     const nextBase = BASES.find((entry) => entry.id === nextId) ?? BASES[0];
@@ -115,8 +139,8 @@ export default function Home() {
         <div className="eyebrow">CORRUPTION CALCULATOR</div>
         <h1>What are you<br />willing to <em>lose?</em></h1>
         <p>
-          Pick a base class, item level, and desired corrupted implicit. We’ll weigh every
-          eligible result, then factor in the Vaal Orb’s 1-in-4 implicit outcome.
+          Pick a base class, item level, and desired corrupted implicit. Compare a Vaal Orb's
+          single roll with a Locus of Corruption target appearing in either of two slots.
         </p>
       </section>
 
@@ -126,6 +150,15 @@ export default function Home() {
 
         <div className="inputs-panel">
           <div className="section-kicker"><span>01</span> Choose the sacrifice</div>
+
+          <div className="method-toggle" role="radiogroup" aria-label="Corruption method">
+            <button type="button" role="radio" aria-checked={method === "vaal"} className={method === "vaal" ? "active" : ""} onClick={() => setMethod("vaal")}>
+              <span>Vaal Orb</span><small>1 implicit roll</small>
+            </button>
+            <button type="button" role="radio" aria-checked={method === "locus"} className={method === "locus" ? "active" : ""} onClick={() => setMethod("locus")}>
+              <span>Locus Altar</span><small>2 implicit rolls</small>
+            </button>
+          </div>
 
           <label className="field-label" htmlFor="base-select">Item base class</label>
           <div className="select-wrap">
@@ -143,43 +176,17 @@ export default function Home() {
 
           <div className="level-row">
             <label className="field-label" htmlFor="level-input">Item level</label>
-            <input
-              id="level-input"
-              className="level-number"
-              type="number"
-              min="1"
-              max="100"
-              value={itemLevel}
-              onChange={(event) => setItemLevel(Math.min(100, Math.max(1, Number(event.target.value) || 1)))}
-            />
+            <input id="level-input" className="level-number" type="number" min="1" max="100" value={itemLevel} onChange={(event) => setItemLevel(Math.min(100, Math.max(1, Number(event.target.value) || 1)))} />
           </div>
-          <input
-            className="level-range"
-            aria-label="Item level slider"
-            type="range"
-            min="1"
-            max="100"
-            value={itemLevel}
-            style={{ "--level": `${itemLevel}%` } as React.CSSProperties}
-            onChange={(event) => setItemLevel(Number(event.target.value))}
-          />
+          <input className="level-range" aria-label="Item level slider" type="range" min="1" max="100" value={itemLevel} style={{ "--level": `${itemLevel}%` } as React.CSSProperties} onChange={(event) => setItemLevel(Number(event.target.value))} />
           <div className="range-labels"><span>1</span><span>100</span></div>
 
           <label className="field-label corruption-label" htmlFor="corruption-select">Desired corruption</label>
           <div className="select-wrap select-wrap-tall">
-            <select
-              id="corruption-select"
-              value={selected?.id ?? ""}
-              onChange={(event) => setSelectedId(event.target.value)}
-            >
-              {compatibleMods
-                .slice()
-                .sort((a, b) => a.level - b.level || a.stat.localeCompare(b.stat))
-                .map((mod) => (
-                  <option value={mod.id} key={mod.id}>
-                    {mod.stat} {mod.level > itemLevel ? `— needs ilvl ${mod.level}` : ""}
-                  </option>
-                ))}
+            <select id="corruption-select" value={selected?.id ?? ""} onChange={(event) => setSelectedId(event.target.value)}>
+              {compatibleMods.slice().sort((a, b) => a.level - b.level || a.stat.localeCompare(b.stat)).map((mod) => (
+                <option value={mod.id} key={mod.id}>{mod.stat} {mod.level > itemLevel ? `— needs ilvl ${mod.level}` : ""}</option>
+              ))}
             </select>
           </div>
 
@@ -189,7 +196,10 @@ export default function Home() {
               <div>
                 <span>{targetEligible ? "TARGET IS IN THE POOL" : "TARGET IS LOCKED"}</span>
                 <strong>{selected.stat}</strong>
-                <small>Requires item level {selected.level} · weight {weightFor(selected, base).toLocaleString()}</small>
+                <small>
+                  Requires item level {selected.level} · weight {weightFor(selected, base).toLocaleString()}
+                  {method === "locus" ? " · target may be in either slot" : ""}
+                </small>
               </div>
             </div>
           )}
@@ -197,58 +207,44 @@ export default function Home() {
 
         <div className="results-panel" aria-live="polite">
           <div className="section-kicker light"><span>02</span> Read the omen</div>
+          <div className="odds-label">CHANCE PER {method === "locus" ? "LOCUS ALTAR" : "VAAL ORB"}</div>
+          <div className={`big-odds ${perAttemptChance ? "" : "zero-odds"}`}>{oneIn(perAttemptChance)}</div>
+          <div className="big-percent">{percent(perAttemptChance)} exact chance</div>
 
-          <div className="odds-label">CHANCE PER VAAL ORB</div>
-          <div className={`big-odds ${perOrbChance ? "" : "zero-odds"}`}>{oneIn(perOrbChance)}</div>
-          <div className="big-percent">{percent(perOrbChance)} exact chance</div>
+          {!targetEligible && selected && <div className="level-warning">Raise the item to level {selected.level} or choose another corruption.</div>}
 
-          {!targetEligible && selected && (
-            <div className="level-warning">
-              Raise the item to level {selected.level} or choose another corruption.
+          <div className="formula" aria-label="Chance calculation">
+            <div><span>Implicit outcome</span><strong>25%</strong></div>
+            <b>×</b>
+            <div><span>{method === "locus" ? "Target in either slot" : "Target in pool"}</span><strong>{percent(conditionalChance, 2)}</strong></div>
+            <b>=</b>
+            <div className="formula-result"><span>Per {method === "locus" ? "altar" : "orb"}</span><strong>{percent(perAttemptChance, 3)}</strong></div>
+          </div>
+
+          {method === "locus" ? (
+            <div className="outcome-track locus-track" aria-label="Locus of Corruption outcome model">
+              <div className="outcome-hit">2 IMPLICITS <span>25%</span></div>
+              <div>WHITE SOCKETS <span>25%</span></div>
+              <div>RARE BRICK <span>25%</span></div>
+              <div>DESTROYED <span>25%</span></div>
+            </div>
+          ) : (
+            <div className="outcome-track" aria-label="Vaal Orb outcome model">
+              <div className="outcome-hit">IMPLICIT <span>25%</span></div>
+              <div>OTHER VAAL OUTCOMES <span>75%</span></div>
             </div>
           )}
 
-          <div className="formula" aria-label="Chance calculation">
-            <div>
-              <span>Implicit outcome</span>
-              <strong>25%</strong>
-            </div>
-            <b>×</b>
-            <div>
-              <span>Target in pool</span>
-              <strong>{percent(conditionalChance, 2)}</strong>
-            </div>
-            <b>=</b>
-            <div className="formula-result">
-              <span>Per orb</span>
-              <strong>{percent(perOrbChance, 3)}</strong>
-            </div>
-          </div>
-
-          <div className="outcome-track" aria-label="Vaal Orb outcome model">
-            <div className="outcome-hit">IMPLICIT <span>25%</span></div>
-            <div>OTHER VAAL OUTCOMES <span>75%</span></div>
-          </div>
-
           <div className="attempts-grid">
-            <div><span>Average</span><strong>{average?.toLocaleString() ?? "—"}</strong><small>orbs</small></div>
-            <div><span>50% chance by</span><strong>{median?.toLocaleString() ?? "—"}</strong><small>orbs</small></div>
-            <div><span>90% chance by</span><strong>{ninety?.toLocaleString() ?? "—"}</strong><small>orbs</small></div>
+            <div><span>Average</span><strong>{average?.toLocaleString() ?? "—"}</strong><small>{attemptUnit}</small></div>
+            <div><span>50% chance by</span><strong>{median?.toLocaleString() ?? "—"}</strong><small>{attemptUnit}</small></div>
+            <div><span>90% chance by</span><strong>{ninety?.toLocaleString() ?? "—"}</strong><small>{attemptUnit}</small></div>
           </div>
 
           <div className="pool-readout">
-            <div>
-              <span>Eligible implicits</span>
-              <strong>{eligiblePool.length}</strong>
-            </div>
-            <div>
-              <span>Total pool weight</span>
-              <strong>{poolWeight.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span>Target weight</span>
-              <strong>{targetWeight.toLocaleString()}</strong>
-            </div>
+            <div><span>Eligible implicits</span><strong>{eligiblePool.length}</strong></div>
+            <div><span>Total pool weight</span><strong>{poolWeight.toLocaleString()}</strong></div>
+            <div><span>Target weight</span><strong>{targetWeight.toLocaleString()}</strong></div>
           </div>
         </div>
       </section>
@@ -256,28 +252,37 @@ export default function Home() {
       <section className="method-section">
         <div className="method-copy">
           <div className="section-kicker"><span>03</span> Know the ritual</div>
-          <h2>Weighted, not evenly split.</h2>
-          <p>
-            First, item level removes locked implicits. Then the base’s first matching tag
-            supplies each modifier’s weight; a zero-weight match excludes it. Your target’s
-            weight is divided by the full eligible pool, then multiplied by 25%.
-          </p>
+          <h2>{method === "locus" ? "Two rolls. No repeated group." : "Weighted, not evenly split."}</h2>
+          {method === "locus" ? (
+            <p>
+              The altar has four equal outcomes. On the two-implicit outcome, the first modifier is selected by weight;
+              then every modifier in that same group is removed before the second weighted roll. The calculator sums
+              the chance your target lands in either slot, then multiplies it by the altar's 25% double-implicit outcome.
+            </p>
+          ) : (
+            <p>
+              First, item level removes locked implicits. Then the base's first matching tag supplies each modifier's
+              weight; a zero-weight match excludes it. Your target's weight is divided by the full eligible pool,
+              then multiplied by 25%.
+            </p>
+          )}
         </div>
         <div className="method-note">
           <span>Important</span>
-          <p>“1 in X” is a long-run average, not a guarantee. Every orb is an independent roll.</p>
+          <p>
+            “1 in X” is a long-run average, not a guarantee. Standard equipment is modeled; special corruption-outcome
+            items such as Sacrificial Garb and Glimpse of Chaos are excluded.
+          </p>
         </div>
       </section>
 
       <footer>
-        <div>
-          <strong>VAAL ODDS</strong>
-          <span>238 supplied equipment corruption rows · reviewed 9 Aug 2026</span>
-        </div>
+        <div><strong>VAAL ODDS</strong><span>238 active equipment corruption rows · reviewed 9 Aug 2026</span></div>
         <nav aria-label="Research sources">
           <a href="https://www.poewiki.net/wiki/Corrupted" target="_blank" rel="noreferrer">Corruption mechanics ↗</a>
           <a href="https://www.poewiki.net/wiki/Modifier" target="_blank" rel="noreferrer">Weighting rules ↗</a>
           <a href="https://www.poewiki.net/wiki/List_of_item_corruption_implicit_modifiers" target="_blank" rel="noreferrer">Modifier list ↗</a>
+          <a href="https://www.poewiki.net/wiki/Locus_of_Corruption" target="_blank" rel="noreferrer">Locus outcomes ↗</a>
         </nav>
       </footer>
     </main>

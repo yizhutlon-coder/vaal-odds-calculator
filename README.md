@@ -1,6 +1,6 @@
 # Vaal Odds
 
-A Path of Exile 1 calculator for the weighted chance of hitting a specific equipment corruption with a Vaal Orb.
+A Path of Exile 1 calculator for the weighted chance of hitting a specific equipment corruption with a Vaal Orb or Locus of Corruption.
 
 ## What it calculates
 
@@ -8,6 +8,8 @@ A Path of Exile 1 calculator for the weighted chance of hitting a specific equip
 - Applies item-level requirements
 - Respects first-matching item-tag weights and zero-weight exclusions
 - Multiplies the target's share of the eligible pool by the Vaal Orb's 25% implicit outcome
+- Models the Locus of Corruption's four equal outcomes
+- Calculates the chance a target appears in either double-corruption slot, excluding the first roll's modifier group from the second
 - Shows average attempts and the attempts needed for 50% and 90% cumulative chances
 
 The dataset contains 238 active equipment corruption rows and was reviewed against the PoE Wiki on August 9, 2026.
@@ -32,3 +34,4 @@ The hosted static files are in `docs/`.
 - [Corruption mechanics](https://www.poewiki.net/wiki/Corrupted)
 - [Modifier weighting rules](https://www.poewiki.net/wiki/Modifier)
 - [Equipment corruption implicit modifiers](https://www.poewiki.net/wiki/List_of_item_corruption_implicit_modifiers)
+- [Locus of Corruption outcomes](https://www.poewiki.net/wiki/Locus_of_Corruption)
