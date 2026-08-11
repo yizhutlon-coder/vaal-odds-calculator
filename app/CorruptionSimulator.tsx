@@ -256,14 +256,15 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
             </div>
           </div>
 
-          {result && result.kind !== "implicit" && result.kind !== "nothing" && (
-            <div className={`result-overlay ${result.kind}`} key={revealKey}>
-              <span>{result.kind === "destroyed" ? "✕" : "VAAL RESULT"}</span>
-              <strong>{result.title}</strong>
-              <p>{result.detail}</p>
-            </div>
-          )}
         </div>
+
+        {result && result.kind !== "implicit" && result.kind !== "nothing" && (
+          <div className={`result-overlay ${result.kind}`} key={revealKey}>
+            <span>{result.kind === "destroyed" ? "✕" : "VAAL RESULT"}</span>
+            <strong>{result.title}</strong>
+            <p>{result.detail}</p>
+          </div>
+        )}
 
         <div className="simulator-readout">
           <div><span>Eligible implicits</span><strong>{eligiblePool.length}</strong></div>
