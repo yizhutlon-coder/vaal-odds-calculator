@@ -37,6 +37,25 @@ const state = {
   locusCost: "100",
   finishedCost: "",
 };
+const defaultSimItem = window.GAME_ITEMS.find((item) => item.name === "Shavronne's Wrappings") || window.GAME_ITEMS.find((item) => item.rarity === "unique") || window.GAME_ITEMS[0];
+const simParams = new URLSearchParams(window.location.search);
+const sharedSimItem = window.GAME_ITEMS.find((item) => item.id === simParams.get("simItem"));
+const sharedSimLevel = Number(simParams.get("simIlvl"));
+const sharedSimAttempts = Number(simParams.get("simAttempts"));
+const sharedSimOutcome = simParams.get("simOutcome");
+if (simParams.get("simMethod") === "locus" || simParams.get("simMethod") === "vaal") state.method = simParams.get("simMethod");
+const simState = {
+  item: sharedSimItem || defaultSimItem,
+  query: (sharedSimItem || defaultSimItem).name,
+  filter: "all",
+  itemLevel: Number.isFinite(sharedSimLevel) && sharedSimLevel >= 1 && sharedSimLevel <= 100 ? sharedSimLevel : 86,
+  attempts: Number.isFinite(sharedSimAttempts) && sharedSimAttempts > 0 ? sharedSimAttempts : 0,
+  result: sharedSimOutcome && simParams.get("simTitle") && simParams.get("simDetail") ? {
+    kind: sharedSimOutcome,
+    title: simParams.get("simTitle"),
+    detail: simParams.get("simDetail"),
+  } : null,
+};
 const $ = (id) => document.getElementById(id);
 
 function weightFor(mod, base) {
@@ -87,6 +106,142 @@ function targetInEitherSlotChance(pool, target, base) {
 
 function compatibleMods(base) {
   return window.CORRUPTION_MODS.filter((mod) => weightFor(mod, base) > 0);
+}
+
+function weightedPick(pool, base) {
+  const total = pool.reduce((sum, mod) => sum + weightFor(mod, base), 0);
+  if (!total) return null;
+  let roll = Math.random() * total;
+  for (const mod of pool) {
+    roll -= weightFor(mod, base);
+    if (roll < 0) return mod;
+  }
+  return pool.at(-1) || null;
+}
+
+function simulateCorruption(method, pool, base) {
+  const branch = Math.floor(Math.random() * 4);
+  if (branch === 0) {
+    const first = weightedPick(pool, base);
+    if (!first) return { kind: "implicit", title: "NO ELIGIBLE IMPLICIT", detail: "Raise the item level and try again." };
+    if (method === "vaal") return { kind: "implicit", title: "CORRUPTED IMPLICIT", detail: first.stat };
+    const second = weightedPick(pool.filter((mod) => mod.group !== first.group), base);
+    return { kind: "implicit", title: "DOUBLE CORRUPTION", detail: second ? `${first.stat} + ${second.stat}` : first.stat };
+  }
+  if (branch === 1) return { kind: "socket", title: "SOCKET COLOR", detail: "The socket-color outcome was selected." };
+  if (branch === 2) return { kind: "rare", title: "RARE BRICK", detail: "The item became a rare of the same base type." };
+  return method === "locus"
+    ? { kind: "destroyed", title: "DESTROYED", detail: "The temple claimed the item." }
+    : { kind: "nothing", title: "NO CHANGE", detail: "Corrupted, but otherwise unchanged." };
+}
+
+function simulatorPool() {
+  const base = BASES.find((entry) => entry.id === simState.item.baseCategoryId) || BASES[0];
+  return {
+    base,
+    pool: window.CORRUPTION_MODS.filter((mod) => mod.level <= simState.itemLevel && weightFor(mod, base) > 0),
+  };
+}
+
+function renderSimulator() {
+  const item = simState.item;
+  const { pool } = simulatorPool();
+  $("sim-method-vaal").classList.toggle("active", state.method === "vaal");
+  $("sim-method-locus").classList.toggle("active", state.method === "locus");
+  $("sim-method-vaal").setAttribute("aria-checked", String(state.method === "vaal"));
+  $("sim-method-locus").setAttribute("aria-checked", String(state.method === "locus"));
+  $("corrupt-button").textContent = state.method === "locus" ? "OFFER TO THE LOCUS" : "USE VAAL ORB";
+  $("sim-attempts").textContent = simState.attempts.toLocaleString();
+  $("sim-level").value = simState.itemLevel;
+  $("sim-level").style.setProperty("--level", `${simState.itemLevel}%`);
+  $("sim-level-output").textContent = simState.itemLevel;
+  $("sim-item-frame").className = `item-frame ${item.rarity}`;
+  $("sim-rarity").textContent = item.rarity === "unique" ? "UNIQUE" : "ITEM BASE";
+  $("sim-item-name").textContent = item.name;
+  $("sim-item-meta").textContent = `${item.rarity === "unique" ? item.baseType : item.classId} · Item level ${simState.itemLevel}`;
+  const art = $("sim-item-art");
+  art.replaceChildren();
+  if (item.imageUrl) {
+    const image = document.createElement("img");
+    image.src = item.imageUrl;
+    image.alt = item.name;
+    art.append(image);
+  } else {
+    const missing = document.createElement("span");
+    missing.className = "missing-art";
+    missing.textContent = "V";
+    art.append(missing);
+  }
+  $("sim-eligible").textContent = pool.length.toLocaleString();
+  $("sim-catalog-count").textContent = `${window.GAME_ITEMS.length.toLocaleString()} items`;
+  const overlay = $("result-overlay");
+  overlay.hidden = !simState.result;
+  if (simState.result) {
+    overlay.className = `result-overlay ${simState.result.kind}`;
+    $("result-kicker").textContent = simState.result.kind === "destroyed" ? "✕" : "VAAL RESULT";
+    $("result-title").textContent = simState.result.title;
+    $("result-detail").textContent = simState.result.detail;
+  }
+  $("sim-share").disabled = !simState.result;
+}
+
+function renderItemSearch() {
+  const list = $("item-search-results");
+  const needle = simState.query.trim().toLocaleLowerCase();
+  if (!needle || simState.query.trim() === simState.item.name) {
+    list.hidden = true;
+    list.replaceChildren();
+    return;
+  }
+  const matches = window.GAME_ITEMS
+    .filter((item) => simState.filter === "all" || item.rarity === simState.filter)
+    .filter((item) => `${item.name} ${item.baseType} ${item.classId}`.toLocaleLowerCase().includes(needle))
+    .sort((a, b) => {
+      const aName = a.name.toLocaleLowerCase();
+      const bName = b.name.toLocaleLowerCase();
+      const aRank = aName === needle ? 0 : aName.startsWith(needle) ? 1 : 2;
+      const bRank = bName === needle ? 0 : bName.startsWith(needle) ? 1 : 2;
+      return aRank - bRank || (a.rarity === b.rarity ? a.name.localeCompare(b.name) : a.rarity === "unique" ? -1 : 1);
+    })
+    .slice(0, 12);
+  list.replaceChildren();
+  for (const item of matches) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("role", "option");
+    const art = document.createElement("span");
+    art.className = `mini-item-art ${item.rarity}`;
+    if (item.imageUrl) {
+      const image = document.createElement("img");
+      image.src = item.imageUrl;
+      image.alt = "";
+      image.loading = "lazy";
+      art.append(image);
+    } else {
+      const fallback = document.createElement("b");
+      fallback.textContent = "V";
+      art.append(fallback);
+    }
+    const copy = document.createElement("span");
+    const name = document.createElement("strong");
+    const meta = document.createElement("small");
+    name.textContent = item.name;
+    meta.textContent = item.rarity === "unique" ? `${item.baseType} · Unique` : `${item.classId} · Base`;
+    copy.append(name, meta);
+    button.append(art, copy);
+    button.addEventListener("click", () => {
+      simState.item = item;
+      simState.query = item.name;
+      simState.attempts = 0;
+      simState.result = null;
+      $("item-search").value = item.name;
+      $("sim-share-status").textContent = "Share the item, outcome, and attempt count.";
+      list.hidden = true;
+      renderSimulator();
+    });
+    list.append(button);
+  }
+  list.hidden = matches.length === 0;
 }
 
 function fillBaseSelect() {
@@ -215,6 +370,7 @@ function render() {
   warning.hidden = targetEligible;
   warning.textContent = targetEligible ? "" : `Raise the item to level ${selected.level} or choose another corruption.`;
   $("level-range").style.setProperty("--level", `${state.itemLevel}%`);
+  renderSimulator();
 }
 
 $("method-vaal").addEventListener("click", () => { state.method = "vaal"; render(); });
@@ -236,6 +392,57 @@ function setLevel(value) {
 
 $("level-input").addEventListener("input", (event) => setLevel(event.target.value));
 $("level-range").addEventListener("input", (event) => setLevel(event.target.value));
+$("sim-method-vaal").addEventListener("click", () => { state.method = "vaal"; render(); });
+$("sim-method-locus").addEventListener("click", () => { state.method = "locus"; render(); });
+$("item-search").value = simState.query;
+$("item-search").addEventListener("input", (event) => {
+  simState.query = event.target.value;
+  renderItemSearch();
+});
+document.querySelectorAll("[data-item-filter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    simState.filter = button.dataset.itemFilter;
+    document.querySelectorAll("[data-item-filter]").forEach((entry) => entry.classList.toggle("active", entry === button));
+    renderItemSearch();
+  });
+});
+$("sim-level").addEventListener("input", (event) => {
+  simState.itemLevel = Number(event.target.value);
+  simState.result = null;
+  renderSimulator();
+});
+$("corrupt-button").addEventListener("click", () => {
+  const { base, pool } = simulatorPool();
+  simState.result = simulateCorruption(state.method, pool, base);
+  simState.attempts += 1;
+  $("sim-share-status").textContent = "Share the item, outcome, and attempt count.";
+  renderSimulator();
+});
+$("sim-reset").addEventListener("click", () => {
+  simState.attempts = 0;
+  simState.result = null;
+  $("sim-share-status").textContent = "Share the item, outcome, and attempt count.";
+  renderSimulator();
+});
+$("sim-share").addEventListener("click", async () => {
+  if (!simState.result) return;
+  const url = new URL(window.location.href);
+  url.hash = "simulator";
+  url.searchParams.set("simItem", simState.item.id);
+  url.searchParams.set("simIlvl", String(simState.itemLevel));
+  url.searchParams.set("simMethod", state.method);
+  url.searchParams.set("simAttempts", String(simState.attempts));
+  url.searchParams.set("simOutcome", simState.result.kind);
+  url.searchParams.set("simTitle", simState.result.title);
+  url.searchParams.set("simDetail", simState.result.detail);
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    $("sim-share-status").textContent = "Luck link copied";
+  } catch {
+    window.history.replaceState({}, "", url);
+    $("sim-share-status").textContent = "Copy the page URL to share this result";
+  }
+});
 for (const [id, key] of [["item-cost", "itemCost"], ["vaal-cost", "vaalCost"], ["locus-cost", "locusCost"], ["finished-cost", "finishedCost"]]) {
   $(id).addEventListener("input", (event) => { state[key] = event.target.value; render(); });
 }

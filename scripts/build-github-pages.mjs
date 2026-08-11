@@ -9,13 +9,22 @@ const sourceData = await readFile(new URL("app/data/corruption-mods.ts", root), 
 const dataMatch = sourceData.match(/export const CORRUPTION_MODS:[^=]+ = (\[[\s\S]+\]);\s*$/);
 if (!dataMatch) throw new Error("Could not read corruption modifier data.");
 
+const sourceItems = await readFile(new URL("app/data/items.ts", root), "utf8");
+const itemsMatch = sourceItems.match(/export const GAME_ITEMS:[^=]+ = (\[[\s\S]+\]);\s*$/);
+if (!itemsMatch) throw new Error("Could not read equipment item data.");
+
 const sourceCss = await readFile(new URL("app/globals.css", root), "utf8");
 const staticCss = sourceCss
   .replace(/^@import "tailwindcss";\s*/m, "")
   .replace(':root {', ':root {\n  --font-display: "Cinzel";\n  --font-sans: "DM Sans";');
 
-await writeFile(new URL("data.js", docs), `window.CORRUPTION_MODS = ${dataMatch[1]};\n`, "utf8");
+await writeFile(
+  new URL("data.js", docs),
+  `window.CORRUPTION_MODS = ${dataMatch[1]};\nwindow.GAME_ITEMS = ${itemsMatch[1]};\n`,
+  "utf8",
+);
 await writeFile(new URL("styles.css", docs), staticCss, "utf8");
 await copyFile(new URL("public/favicon.svg", root), new URL("favicon.svg", docs));
+await copyFile(new URL("public/og.png", root), new URL("og.png", docs));
 
 console.log("GitHub Pages files generated in docs/.");

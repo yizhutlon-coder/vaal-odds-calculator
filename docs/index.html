@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Calculate weighted Vaal Orb and Locus of Corruption implicit odds and projected costs for Path of Exile 1 equipment." />
+    <meta name="description" content="Calculate weighted Vaal Orb and Locus odds, project costs, and simulate corrupting real Path of Exile equipment." />
+    <meta property="og:title" content="Vaal Odds — Corrupt It Yourself" />
+    <meta property="og:description" content="Calculate the odds, simulate the slam, and share your corruption luck." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://yizhutlon-coder.github.io/vaal-odds-calculator/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Vaal Odds — Corrupt It Yourself" />
+    <meta name="twitter:description" content="Calculate the odds, simulate the slam, and share your corruption luck." />
+    <meta name="twitter:image" content="https://yizhutlon-coder.github.io/vaal-odds-calculator/og.png" />
     <title>Vaal Odds &mdash; PoE Corruption Calculator</title>
     <link rel="icon" href="favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -68,7 +76,7 @@
             <div class="outcome-hit">IMPLICIT <span>25%</span></div><div>OTHER VAAL OUTCOMES <span>75%</span></div>
           </div>
           <div id="locus-track" class="outcome-track locus-track" aria-label="Locus of Corruption outcome model" hidden>
-            <div class="outcome-hit">2 IMPLICITS <span>25%</span></div><div>WHITE SOCKETS <span>25%</span></div><div>RARE BRICK <span>25%</span></div><div>DESTROYED <span>25%</span></div>
+            <div class="outcome-hit">2 IMPLICITS <span>25%</span></div><div>SOCKET COLOR <span>25%</span></div><div>RARE BRICK <span>25%</span></div><div>DESTROYED <span>25%</span></div>
           </div>
 
           <div class="attempts-grid">
@@ -83,9 +91,64 @@
         </div>
       </section>
 
+      <section class="simulator-shell" id="simulator" aria-label="Corruption simulator">
+        <div class="simulator-controls">
+          <div class="section-kicker"><span>03</span> Tempt fate</div>
+          <h2>Corrupt it yourself.</h2>
+          <p class="simulator-intro">Choose a real equipment base or unique, set its item level, then take the gamble.</p>
+
+          <div class="method-toggle simulator-method" role="radiogroup" aria-label="Simulator corruption method">
+            <button id="sim-method-vaal" type="button" role="radio" aria-checked="true" class="active"><span>Vaal Orb</span><small>Four equal branches</small></button>
+            <button id="sim-method-locus" type="button" role="radio" aria-checked="false"><span>Locus Altar</span><small>Risk total destruction</small></button>
+          </div>
+
+          <label class="field-label" for="item-search">Find an item</label>
+          <div class="item-search-wrap">
+            <input id="item-search" type="search" placeholder="Try Headhunter, Astral Plate…" autocomplete="off" />
+            <span aria-hidden="true">⌕</span>
+            <div id="item-search-results" class="item-search-results" role="listbox" aria-label="Matching equipment" hidden></div>
+          </div>
+          <div class="item-filter" aria-label="Item type filter">
+            <button type="button" data-item-filter="all" class="active">All items</button>
+            <button type="button" data-item-filter="base">Bases</button>
+            <button type="button" data-item-filter="unique">Uniques</button>
+          </div>
+
+          <div class="level-row simulator-level"><label class="field-label" for="sim-level">Item level</label><output id="sim-level-output" for="sim-level">86</output></div>
+          <input id="sim-level" class="level-range" type="range" min="1" max="100" value="86" />
+          <div class="range-labels"><span>1</span><span>100</span></div>
+
+          <div class="simulator-actions">
+            <button id="corrupt-button" type="button" class="corrupt-button">USE VAAL ORB</button>
+            <button id="sim-reset" type="button" class="reset-button">Reset run</button>
+          </div>
+        </div>
+
+        <div class="simulator-stage">
+          <div class="stage-topline"><span>ATTEMPTS</span><strong id="sim-attempts">0</strong></div>
+          <div id="item-display" class="item-display">
+            <div id="sim-item-frame" class="item-frame unique">
+              <div class="item-art" id="sim-item-art"></div>
+              <span id="sim-rarity" class="rarity-label">UNIQUE</span>
+              <h3 id="sim-item-name"></h3>
+              <p id="sim-item-meta"></p>
+            </div>
+            <div id="result-overlay" class="result-overlay" hidden>
+              <span id="result-kicker">VAAL RESULT</span><strong id="result-title"></strong><p id="result-detail"></p>
+            </div>
+          </div>
+          <div class="simulator-readout">
+            <div><span>Eligible implicits</span><strong id="sim-eligible"></strong></div>
+            <div><span>Catalog</span><strong id="sim-catalog-count"></strong></div>
+          </div>
+          <div class="share-row"><button id="sim-share" type="button" disabled>Copy luck link</button><span id="sim-share-status" aria-live="polite">Share the item, outcome, and attempt count.</span></div>
+          <p class="simulator-note">The socket branch is intentionally shown only as “Socket Color” for the current league. Rare-item affixes are not generated.</p>
+        </div>
+      </section>
+
       <section class="cost-shell" aria-label="Corruption cost calculator">
         <div class="cost-inputs">
-          <div class="section-kicker"><span>03</span> Price the gamble</div>
+          <div class="section-kicker"><span>04</span> Price the gamble</div>
           <h2>What does each try cost?</h2>
           <p class="cost-intro">Enter current trade prices in Chaos. Rates are editable because the market changes.</p>
 
@@ -117,7 +180,7 @@
 
       <section class="method-section">
         <div class="method-copy">
-          <div class="section-kicker"><span>04</span> Know the ritual</div>
+          <div class="section-kicker"><span>05</span> Know the ritual</div>
           <h2 id="method-title"></h2><p id="method-description"></p>
         </div>
         <div class="method-note"><span>Important</span><p>&ldquo;1 in X&rdquo; is a long-run average, not a guarantee. Standard equipment is modeled; special corruption-outcome items such as Sacrificial Garb and Glimpse of Chaos are excluded.</p></div>

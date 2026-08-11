@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CORRUPTION_MODS, type CorruptionMod } from "./data/corruption-mods";
+import CorruptionSimulator from "./CorruptionSimulator";
 
 type BaseCategory = {
   id: string;
@@ -162,7 +163,7 @@ export default function Home() {
         <div className="eyebrow">CORRUPTION CALCULATOR</div>
         <h1>What are you<br />willing to <em>lose?</em></h1>
         <p>
-          Pick a base class, item level, and desired corrupted implicit. Compare a Vaal Orb's
+          Pick a base class, item level, and desired corrupted implicit. Compare a Vaal Orb’s
           single roll with a Locus of Corruption target appearing in either of two slots.
         </p>
       </section>
@@ -247,7 +248,7 @@ export default function Home() {
           {method === "locus" ? (
             <div className="outcome-track locus-track" aria-label="Locus of Corruption outcome model">
               <div className="outcome-hit">2 IMPLICITS <span>25%</span></div>
-              <div>WHITE SOCKETS <span>25%</span></div>
+              <div>SOCKET COLOR <span>25%</span></div>
               <div>RARE BRICK <span>25%</span></div>
               <div>DESTROYED <span>25%</span></div>
             </div>
@@ -272,9 +273,11 @@ export default function Home() {
         </div>
       </section>
 
+      <CorruptionSimulator method={method} onMethodChange={setMethod} bases={BASES} />
+
       <section className="cost-shell" aria-label="Corruption cost calculator">
         <div className="cost-inputs">
-          <div className="section-kicker"><span>03</span> Price the gamble</div>
+          <div className="section-kicker"><span>04</span> Price the gamble</div>
           <h2>What does each try cost?</h2>
           <p className="cost-intro">Enter current trade prices in Chaos. Rates are editable because the market changes.</p>
 
@@ -321,7 +324,7 @@ export default function Home() {
             <div className={`buy-verdict ${finishedCost <= expectedCost ? "buy-finished" : "gamble-cheaper"}`}>
               <span>{finishedCost <= expectedCost ? "BUYING LOOKS CHEAPER" : "GAMBLING HAS THE LOWER AVERAGE"}</span>
               <strong>{formatChaos(comparisonDifference)} difference</strong>
-              <p>{finishedCost <= expectedCost ? "The finished item's asking price is below the gamble's average spend." : "The asking price is above the gamble's average spend—but luck can still run far over budget."}</p>
+              <p>{finishedCost <= expectedCost ? "The finished item’s asking price is below the gamble’s average spend." : "The asking price is above the gamble’s average spend—but luck can still run far over budget."}</p>
             </div>
           ) : (
             <div className="buy-prompt">Enter a finished-item price to compare buying it against the average gamble.</div>
@@ -332,18 +335,18 @@ export default function Home() {
 
       <section className="method-section">
         <div className="method-copy">
-          <div className="section-kicker"><span>04</span> Know the ritual</div>
+          <div className="section-kicker"><span>05</span> Know the ritual</div>
           <h2>{method === "locus" ? "Two rolls. No repeated group." : "Weighted, not evenly split."}</h2>
           {method === "locus" ? (
             <p>
               The altar has four equal outcomes. On the two-implicit outcome, the first modifier is selected by weight;
               then every modifier in that same group is removed before the second weighted roll. The calculator sums
-              the chance your target lands in either slot, then multiplies it by the altar's 25% double-implicit outcome.
+              the chance your target lands in either slot, then multiplies it by the altar’s 25% double-implicit outcome.
             </p>
           ) : (
             <p>
-              First, item level removes locked implicits. Then the base's first matching tag supplies each modifier's
-              weight; a zero-weight match excludes it. Your target's weight is divided by the full eligible pool,
+              First, item level removes locked implicits. Then the base’s first matching tag supplies each modifier’s
+              weight; a zero-weight match excludes it. Your target’s weight is divided by the full eligible pool,
               then multiplied by 25%.
             </p>
           )}
