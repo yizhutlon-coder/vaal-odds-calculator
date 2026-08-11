@@ -196,7 +196,9 @@ function renderSimulator() {
   $("socket-color-label").hidden = simState.result?.kind !== "socket";
   const implicitLines = $("sim-implicit-lines");
   implicitLines.replaceChildren();
-  for (const rolledMod of simState.result?.rolledMods || []) {
+  const rolledMods = simState.result?.rolledMods || [];
+  $("sim-implicit-block").hidden = rolledMods.length === 0;
+  for (const rolledMod of rolledMods) {
     const line = document.createElement("p");
     line.className = "poe-implicit";
     line.textContent = rolledMod;

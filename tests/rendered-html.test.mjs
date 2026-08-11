@@ -42,6 +42,7 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(html, /class="item-frame poe-tooltip unique"/);
   assert.match(html, />CORRUPTED</);
   assert.match(html, /id="socket-color-label"/);
+  assert.ok(html.indexOf('id="sim-implicit-block"') < html.indexOf('id="sim-item-art"'));
   assert.match(app, /simulateCorruption/);
   assert.match(app, /rollModifierRanges/);
   assert.match(app, /simRolls/);

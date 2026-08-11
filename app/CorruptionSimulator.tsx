@@ -247,6 +247,12 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
               {selectedItem.rarity === "unique" && result?.kind !== "rare" && <strong>{selectedItem.baseType}</strong>}
             </div>
             <div className="poe-tooltip-body">
+              {result?.rolledMods.length ? (
+                <div className="poe-implicit-block">
+                  {result.rolledMods.map((rolledMod, index) => <p className="poe-implicit" key={`${rolledMod}-${index}`}>{rolledMod}</p>)}
+                  <div className="poe-separator" aria-hidden="true" />
+                </div>
+              ) : null}
               <div className="poe-art-area">
                 {selectedItem.imageUrl && <img className="poe-item-art" src={selectedItem.imageUrl} alt="" aria-hidden="true" />}
                 {result?.kind === "socket" && <div className="socket-color-label">Socket Color</div>}
@@ -254,7 +260,6 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
               <div className="poe-property poe-class">{selectedItem.classId}</div>
               <div className="poe-property"><span>Item Level:</span> <b>{itemLevel}</b></div>
               <div className="poe-separator" aria-hidden="true" />
-              {result?.rolledMods.map((rolledMod, index) => <p className="poe-implicit" key={`${rolledMod}-${index}`}>{rolledMod}</p>)}
               {(result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" || result?.kind === "socket") && <p className="poe-corrupted">CORRUPTED</p>}
             </div>
           </div>

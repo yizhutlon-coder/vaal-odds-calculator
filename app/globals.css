@@ -295,6 +295,8 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .poe-art-area > * { grid-area: 1 / 1; }
 .poe-item-art { max-width: 178px; max-height: 174px; object-fit: contain; opacity: .92; filter: drop-shadow(0 9px 13px rgba(0,0,0,.72)) saturate(.92); pointer-events: none; }
 .socket-color-label { z-index: 2; padding: 8px 14px 7px; color: #ded8cc; border: 1px solid rgba(210,203,191,.42); background: rgba(8,8,8,.68); box-shadow: 0 6px 18px rgba(0,0,0,.46); font: 650 18px/1 var(--font-display), serif; letter-spacing: .055em; text-transform: uppercase; text-shadow: 0 0 12px rgba(255,255,255,.14); }
+.poe-implicit-block { width: 100%; margin: 2px 0 8px; position: relative; z-index: 2; }
+.poe-implicit-block .poe-separator { margin-top: 10px; margin-bottom: 4px; }
 .poe-property, .poe-separator, .poe-implicit, .poe-corrupted { position: relative; z-index: 1; }
 .poe-property { color: #aaa; font: 600 16px/1.35 var(--font-display), serif; font-variant: small-caps; letter-spacing: .035em; }
 .poe-property span { color: #8f8f8f; }
