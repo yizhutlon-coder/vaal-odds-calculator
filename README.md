@@ -12,6 +12,9 @@ A Path of Exile 1 calculator for the weighted chance of hitting a specific equip
 - Calculates the chance a target appears in either double-corruption slot, excluding the first roll's modifier group from the second
 - Projects cost per attempt, average spend, and 50%/90% budgets from editable Chaos prices
 - Compares the projected average gamble with an optional finished-item asking price
+- Simulates Vaal Orb and Locus outcomes on a searchable catalog of equipment bases and uniques
+- Renders implicit and no-change results in a PoE-style item tooltip and rolls every modifier value within its range
+- Creates shareable luck links containing the item, result, and attempt count
 - Reminds Locus buyers to verify both the tier-3 room and an open route from the Temple entrance
 - Shows average attempts and the attempts needed for 50% and 90% cumulative chances
 

@@ -43,6 +43,13 @@ const sharedSimItem = window.GAME_ITEMS.find((item) => item.id === simParams.get
 const sharedSimLevel = Number(simParams.get("simIlvl"));
 const sharedSimAttempts = Number(simParams.get("simAttempts"));
 const sharedSimOutcome = simParams.get("simOutcome");
+let sharedSimRolls = [];
+try {
+  const parsedRolls = JSON.parse(simParams.get("simRolls") || "[]");
+  if (Array.isArray(parsedRolls)) sharedSimRolls = parsedRolls.filter((value) => typeof value === "string");
+} catch {
+  sharedSimRolls = [];
+}
 if (simParams.get("simMethod") === "locus" || simParams.get("simMethod") === "vaal") state.method = simParams.get("simMethod");
 const simState = {
   item: sharedSimItem || defaultSimItem,
@@ -54,6 +61,7 @@ const simState = {
     kind: sharedSimOutcome,
     title: simParams.get("simTitle"),
     detail: simParams.get("simDetail"),
+    rolledMods: sharedSimRolls.length ? sharedSimRolls : sharedSimOutcome === "implicit" ? [simParams.get("simDetail")] : [],
   } : null,
 };
 const $ = (id) => document.getElementById(id);
@@ -119,20 +127,39 @@ function weightedPick(pool, base) {
   return pool.at(-1) || null;
 }
 
+function rollModifierRanges(stat, random = Math.random) {
+  return stat.replace(/\((-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\)/g, (_match, firstText, secondText) => {
+    const first = Number(firstText);
+    const second = Number(secondText);
+    const minimum = Math.min(first, second);
+    const maximum = Math.max(first, second);
+    const decimalPlaces = Math.max(firstText.split(".")[1]?.length || 0, secondText.split(".")[1]?.length || 0);
+    const scale = 10 ** decimalPlaces;
+    const scaledMinimum = Math.round(minimum * scale);
+    const scaledMaximum = Math.round(maximum * scale);
+    const rolled = scaledMinimum + Math.floor(random() * (scaledMaximum - scaledMinimum + 1));
+    return (rolled / scale).toFixed(decimalPlaces);
+  });
+}
+
 function simulateCorruption(method, pool, base) {
   const branch = Math.floor(Math.random() * 4);
   if (branch === 0) {
     const first = weightedPick(pool, base);
-    if (!first) return { kind: "implicit", title: "NO ELIGIBLE IMPLICIT", detail: "Raise the item level and try again." };
-    if (method === "vaal") return { kind: "implicit", title: "CORRUPTED IMPLICIT", detail: first.stat };
+    if (!first) return { kind: "implicit", title: "NO ELIGIBLE IMPLICIT", detail: "Raise the item level and try again.", rolledMods: [] };
+    if (method === "vaal") {
+      const rolledMods = [rollModifierRanges(first.stat)];
+      return { kind: "implicit", title: "CORRUPTED IMPLICIT", detail: rolledMods[0], rolledMods };
+    }
     const second = weightedPick(pool.filter((mod) => mod.group !== first.group), base);
-    return { kind: "implicit", title: "DOUBLE CORRUPTION", detail: second ? `${first.stat} + ${second.stat}` : first.stat };
+    const rolledMods = [first, second].filter(Boolean).map((mod) => rollModifierRanges(mod.stat));
+    return { kind: "implicit", title: "DOUBLE CORRUPTION", detail: rolledMods.join(" + "), rolledMods };
   }
-  if (branch === 1) return { kind: "socket", title: "SOCKET COLOR", detail: "The socket-color outcome was selected." };
-  if (branch === 2) return { kind: "rare", title: "RARE BRICK", detail: "The item became a rare of the same base type." };
+  if (branch === 1) return { kind: "socket", title: "SOCKET COLOR", detail: "The socket-color outcome was selected.", rolledMods: [] };
+  if (branch === 2) return { kind: "rare", title: "RARE BRICK", detail: "The item became a rare of the same base type.", rolledMods: [] };
   return method === "locus"
-    ? { kind: "destroyed", title: "DESTROYED", detail: "The temple claimed the item." }
-    : { kind: "nothing", title: "NO CHANGE", detail: "Corrupted, but otherwise unchanged." };
+    ? { kind: "destroyed", title: "DESTROYED", detail: "The temple claimed the item.", rolledMods: [] }
+    : { kind: "nothing", title: "NO CHANGE", detail: "Corrupted, but otherwise unchanged.", rolledMods: [] };
 }
 
 function simulatorPool() {
@@ -155,28 +182,36 @@ function renderSimulator() {
   $("sim-level").value = simState.itemLevel;
   $("sim-level").style.setProperty("--level", `${simState.itemLevel}%`);
   $("sim-level-output").textContent = simState.itemLevel;
-  $("sim-item-frame").className = `item-frame ${item.rarity}`;
-  $("sim-rarity").textContent = item.rarity === "unique" ? "UNIQUE" : "ITEM BASE";
+  const itemFrame = $("sim-item-frame");
+  itemFrame.className = `item-frame poe-tooltip ${item.rarity}`;
   $("sim-item-name").textContent = item.name;
-  $("sim-item-meta").textContent = `${item.rarity === "unique" ? item.baseType : item.classId} · Item level ${simState.itemLevel}`;
-  const art = $("sim-item-art");
-  art.replaceChildren();
-  if (item.imageUrl) {
-    const image = document.createElement("img");
-    image.src = item.imageUrl;
-    image.alt = item.name;
-    art.append(image);
-  } else {
-    const missing = document.createElement("span");
-    missing.className = "missing-art";
-    missing.textContent = "V";
-    art.append(missing);
+  $("sim-base-name").textContent = item.rarity === "unique" ? item.baseType : "";
+  $("sim-base-name").hidden = item.rarity !== "unique";
+  $("sim-item-class").textContent = item.classId;
+  $("sim-item-level").textContent = simState.itemLevel;
+  const watermark = $("sim-item-watermark");
+  watermark.hidden = !item.imageUrl;
+  if (item.imageUrl) watermark.src = item.imageUrl;
+  const implicitLines = $("sim-implicit-lines");
+  implicitLines.replaceChildren();
+  for (const rolledMod of simState.result?.rolledMods || []) {
+    const line = document.createElement("p");
+    line.className = "poe-implicit";
+    line.textContent = rolledMod;
+    implicitLines.append(line);
+  }
+  const inlineResult = simState.result?.kind === "implicit" || simState.result?.kind === "nothing";
+  $("sim-corrupted").hidden = !inlineResult;
+  if (inlineResult) {
+    void itemFrame.offsetWidth;
+    itemFrame.classList.add("item-revealed");
   }
   $("sim-eligible").textContent = pool.length.toLocaleString();
   $("sim-catalog-count").textContent = `${window.GAME_ITEMS.length.toLocaleString()} items`;
   const overlay = $("result-overlay");
-  overlay.hidden = !simState.result;
-  if (simState.result) {
+  const overlayResult = simState.result && !inlineResult;
+  overlay.hidden = !overlayResult;
+  if (overlayResult) {
     overlay.className = `result-overlay ${simState.result.kind}`;
     $("result-kicker").textContent = simState.result.kind === "destroyed" ? "✕" : "VAAL RESULT";
     $("result-title").textContent = simState.result.title;
@@ -435,6 +470,7 @@ $("sim-share").addEventListener("click", async () => {
   url.searchParams.set("simOutcome", simState.result.kind);
   url.searchParams.set("simTitle", simState.result.title);
   url.searchParams.set("simDetail", simState.result.detail);
+  url.searchParams.set("simRolls", JSON.stringify(simState.result.rolledMods || []));
   try {
     await navigator.clipboard.writeText(url.toString());
     $("sim-share-status").textContent = "Luck link copied";

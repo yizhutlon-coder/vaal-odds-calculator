@@ -15,6 +15,7 @@ type SimulationResult = {
   title: string;
   detail: string;
   mods: CorruptionMod[];
+  rolledMods: string[];
 };
 
 type Props = {
@@ -41,26 +42,46 @@ function weightedPick(pool: CorruptionMod[], base: BaseCategory) {
   return pool.at(-1) ?? null;
 }
 
+export function rollModifierRanges(stat: string, random = Math.random) {
+  return stat.replace(/\((-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\)/g, (_match, firstText: string, secondText: string) => {
+    const first = Number(firstText);
+    const second = Number(secondText);
+    const minimum = Math.min(first, second);
+    const maximum = Math.max(first, second);
+    const decimalPlaces = Math.max(firstText.split(".")[1]?.length ?? 0, secondText.split(".")[1]?.length ?? 0);
+    const scale = 10 ** decimalPlaces;
+    const scaledMinimum = Math.round(minimum * scale);
+    const scaledMaximum = Math.round(maximum * scale);
+    const rolled = scaledMinimum + Math.floor(random() * (scaledMaximum - scaledMinimum + 1));
+    return (rolled / scale).toFixed(decimalPlaces);
+  });
+}
+
 function simulate(method: CorruptionMethod, pool: CorruptionMod[], base: BaseCategory): SimulationResult {
   const branch = Math.floor(Math.random() * 4);
   if (branch === 0) {
     const first = weightedPick(pool, base);
-    if (!first) return { kind: "implicit", title: "NO ELIGIBLE IMPLICIT", detail: "Raise the item level and try again.", mods: [] };
-    if (method === "vaal") return { kind: "implicit", title: "CORRUPTED IMPLICIT", detail: first.stat, mods: [first] };
+    if (!first) return { kind: "implicit", title: "NO ELIGIBLE IMPLICIT", detail: "Raise the item level and try again.", mods: [], rolledMods: [] };
+    if (method === "vaal") {
+      const rolledMods = [rollModifierRanges(first.stat)];
+      return { kind: "implicit", title: "CORRUPTED IMPLICIT", detail: rolledMods[0], mods: [first], rolledMods };
+    }
     const secondPool = pool.filter((mod) => mod.group !== first.group);
     const second = weightedPick(secondPool, base);
     const mods = second ? [first, second] : [first];
+    const rolledMods = mods.map((mod) => rollModifierRanges(mod.stat));
     return {
       kind: "implicit",
       title: "DOUBLE CORRUPTION",
-      detail: mods.map((mod) => mod.stat).join(" + "),
+      detail: rolledMods.join(" + "),
       mods,
+      rolledMods,
     };
   }
-  if (branch === 1) return { kind: "socket", title: "SOCKET COLOR", detail: "The socket-color outcome was selected.", mods: [] };
-  if (branch === 2) return { kind: "rare", title: "RARE BRICK", detail: "The item became a rare of the same base type.", mods: [] };
-  if (method === "locus") return { kind: "destroyed", title: "DESTROYED", detail: "The temple claimed the item.", mods: [] };
-  return { kind: "nothing", title: "NO CHANGE", detail: "Corrupted, but otherwise unchanged.", mods: [] };
+  if (branch === 1) return { kind: "socket", title: "SOCKET COLOR", detail: "The socket-color outcome was selected.", mods: [], rolledMods: [] };
+  if (branch === 2) return { kind: "rare", title: "RARE BRICK", detail: "The item became a rare of the same base type.", mods: [], rolledMods: [] };
+  if (method === "locus") return { kind: "destroyed", title: "DESTROYED", detail: "The temple claimed the item.", mods: [], rolledMods: [] };
+  return { kind: "nothing", title: "NO CHANGE", detail: "Corrupted, but otherwise unchanged.", mods: [], rolledMods: [] };
 }
 
 export default function CorruptionSimulator({ method, onMethodChange, bases }: Props) {
@@ -84,6 +105,13 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
       const kind = params.get("simOutcome") as OutcomeKind | null;
       const title = params.get("simTitle");
       const detail = params.get("simDetail");
+      let rolledMods: string[] = [];
+      try {
+        const parsed = JSON.parse(params.get("simRolls") ?? "[]");
+        if (Array.isArray(parsed)) rolledMods = parsed.filter((value): value is string => typeof value === "string");
+      } catch {
+        rolledMods = [];
+      }
       if (sharedItem) {
         setSelectedItem(sharedItem);
         setQuery(sharedItem.name);
@@ -91,7 +119,7 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
       if (Number.isFinite(sharedLevel) && sharedLevel >= 1 && sharedLevel <= 100) setItemLevel(sharedLevel);
       if (Number.isFinite(sharedAttempts) && sharedAttempts > 0) setAttempts(sharedAttempts);
       if (sharedMethod === "vaal" || sharedMethod === "locus") onMethodChange(sharedMethod);
-      if (kind && title && detail) setResult({ kind, title, detail, mods: [] });
+      if (kind && title && detail) setResult({ kind, title, detail, mods: [], rolledMods: rolledMods.length ? rolledMods : kind === "implicit" ? [detail] : [] });
     }, 0);
     return () => window.clearTimeout(loadSharedResult);
   }, [onMethodChange]);
@@ -148,6 +176,7 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
     url.searchParams.set("simOutcome", result.kind);
     url.searchParams.set("simTitle", result.title);
     url.searchParams.set("simDetail", result.detail);
+    url.searchParams.set("simRolls", JSON.stringify(result.rolledMods));
     try {
       await navigator.clipboard.writeText(url.toString());
       setShareStatus("Luck link copied");
@@ -212,16 +241,22 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
       <div className="simulator-stage">
         <div className="stage-topline"><span>ATTEMPTS</span><strong>{attempts.toLocaleString()}</strong></div>
         <div className={`item-display ${result?.kind ?? ""}`}>
-          <div className={`item-frame ${selectedItem.rarity}`}>
-            <div className="item-art">
-              {selectedItem.imageUrl ? <img src={selectedItem.imageUrl} alt={selectedItem.name} /> : <span className="missing-art">V</span>}
+          <div className={`item-frame poe-tooltip ${selectedItem.rarity} ${result?.kind === "implicit" || result?.kind === "nothing" ? "item-revealed" : ""}`} key={`${selectedItem.id}-${revealKey}`}>
+            <div className="poe-nameplate">
+              <h3>{selectedItem.name}</h3>
+              {selectedItem.rarity === "unique" && <strong>{selectedItem.baseType}</strong>}
             </div>
-            <span className="rarity-label">{selectedItem.rarity === "unique" ? "UNIQUE" : "ITEM BASE"}</span>
-            <h3>{selectedItem.name}</h3>
-            <p>{selectedItem.rarity === "unique" ? selectedItem.baseType : selectedItem.classId} · Item level {itemLevel}</p>
+            <div className="poe-tooltip-body">
+              {selectedItem.imageUrl && <img className="poe-item-watermark" src={selectedItem.imageUrl} alt="" aria-hidden="true" />}
+              <div className="poe-property poe-class">{selectedItem.classId}</div>
+              <div className="poe-property"><span>Item Level:</span> <b>{itemLevel}</b></div>
+              <div className="poe-separator" aria-hidden="true" />
+              {result?.rolledMods.map((rolledMod, index) => <p className="poe-implicit" key={`${rolledMod}-${index}`}>{rolledMod}</p>)}
+              {(result?.kind === "implicit" || result?.kind === "nothing") && <p className="poe-corrupted">CORRUPTED</p>}
+            </div>
           </div>
 
-          {result && (
+          {result && result.kind !== "implicit" && result.kind !== "nothing" && (
             <div className={`result-overlay ${result.kind}`} key={revealKey}>
               <span>{result.kind === "destroyed" ? "✕" : "VAAL RESULT"}</span>
               <strong>{result.title}</strong>

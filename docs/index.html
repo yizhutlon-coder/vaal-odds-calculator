@@ -127,11 +127,16 @@
         <div class="simulator-stage">
           <div class="stage-topline"><span>ATTEMPTS</span><strong id="sim-attempts">0</strong></div>
           <div id="item-display" class="item-display">
-            <div id="sim-item-frame" class="item-frame unique">
-              <div class="item-art" id="sim-item-art"></div>
-              <span id="sim-rarity" class="rarity-label">UNIQUE</span>
-              <h3 id="sim-item-name"></h3>
-              <p id="sim-item-meta"></p>
+            <div id="sim-item-frame" class="item-frame poe-tooltip unique">
+              <div class="poe-nameplate"><h3 id="sim-item-name"></h3><strong id="sim-base-name"></strong></div>
+              <div class="poe-tooltip-body">
+                <img id="sim-item-watermark" class="poe-item-watermark" alt="" aria-hidden="true" />
+                <div id="sim-item-class" class="poe-property poe-class"></div>
+                <div class="poe-property"><span>Item Level:</span> <b id="sim-item-level">86</b></div>
+                <div class="poe-separator" aria-hidden="true"></div>
+                <div id="sim-implicit-lines"></div>
+                <p id="sim-corrupted" class="poe-corrupted" hidden>CORRUPTED</p>
+              </div>
             </div>
             <div id="result-overlay" class="result-overlay" hidden>
               <span id="result-kicker">VAAL RESULT</span><strong id="result-title"></strong><p id="result-detail"></p>

@@ -29,17 +29,24 @@ test("server-renders the calculator and simulator", async () => {
 });
 
 test("GitHub Pages build contains the same simulator capabilities", async () => {
-  const [html, app, data] = await Promise.all([
+  const [html, app, data, component] = await Promise.all([
     readFile(new URL("../docs/index.html", import.meta.url), "utf8"),
     readFile(new URL("../docs/app.js", import.meta.url), "utf8"),
     readFile(new URL("../docs/data.js", import.meta.url), "utf8"),
+    readFile(new URL("../app/CorruptionSimulator.tsx", import.meta.url), "utf8"),
   ]);
 
   assert.match(html, /id="simulator"/);
   assert.match(html, /id="item-search"/);
   assert.match(html, /SOCKET COLOR/);
+  assert.match(html, /class="item-frame poe-tooltip unique"/);
+  assert.match(html, />CORRUPTED</);
   assert.match(app, /simulateCorruption/);
+  assert.match(app, /rollModifierRanges/);
+  assert.match(app, /simRolls/);
   assert.match(app, /simItem/);
+  assert.match(component, /rolledMods/);
+  assert.match(component, /Math\.min\(first, second\)/);
   assert.match(data, /window\.GAME_ITEMS/);
   assert.match(data, /Shavronne's Wrappings/);
 });
