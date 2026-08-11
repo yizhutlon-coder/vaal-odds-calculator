@@ -274,7 +274,7 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .stage-topline { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 15px; border-bottom: 1px solid #403c35; }
 .stage-topline span { color: #9c9488; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
 .stage-topline strong { color: #d9b773; font: 600 28px/1 var(--font-display), serif; }
-.item-display { min-height: 390px; padding: 26px 0; position: relative; display: grid; place-items: center; overflow: hidden; }
+.item-display { min-height: 480px; padding: 26px 0; position: relative; display: grid; place-items: center; overflow: hidden; }
 .item-frame.poe-tooltip { width: min(100%, 430px); position: relative; color: #b9b9b9; text-align: center; border: 2px solid #4b4338; background: rgba(3,3,3,.96); box-shadow: 0 26px 48px rgba(0,0,0,.5), inset 0 0 55px rgba(255,255,255,.018); }
 .poe-nameplate { min-height: 66px; padding: 8px 38px 7px; position: relative; display: grid; place-content: center; border-bottom: 2px solid #6d482b; background: linear-gradient(180deg, #25170f, #0d0907 52%, #21130d); box-shadow: inset 0 0 0 1px rgba(174,96,37,.2), inset 0 8px 18px rgba(174,96,37,.09); }
 .poe-nameplate::before, .poe-nameplate::after { content: "◆"; position: absolute; top: 50%; translate: 0 -50%; color: #7b4325; font-size: 15px; text-shadow: 0 0 10px rgba(174,96,37,.5); }
@@ -284,8 +284,9 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .poe-nameplate strong { margin-top: 2px; font-size: 18px; }
 .item-frame.base .poe-nameplate { border-bottom-color: #76736e; background: linear-gradient(180deg, #252421, #080808 55%, #1c1b19); }
 .item-frame.base .poe-nameplate h3 { color: #d8d8d8; }
-.poe-tooltip-body { min-height: 214px; padding: 19px 28px 21px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-.poe-item-watermark { max-width: 150px; max-height: 178px; position: absolute; inset: 50% auto auto 50%; translate: -50% -50%; object-fit: contain; opacity: .07; filter: grayscale(1) contrast(1.2); pointer-events: none; }
+.poe-tooltip-body { min-height: 330px; padding: 14px 28px 24px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: hidden; }
+.poe-art-area { width: 100%; min-height: 174px; margin-bottom: 12px; position: relative; z-index: 1; display: grid; place-items: center; background: radial-gradient(ellipse at center, rgba(92,75,54,.13), transparent 68%); }
+.poe-item-art { max-width: 178px; max-height: 174px; object-fit: contain; opacity: .92; filter: drop-shadow(0 9px 13px rgba(0,0,0,.72)) saturate(.92); pointer-events: none; }
 .poe-property, .poe-separator, .poe-implicit, .poe-corrupted { position: relative; z-index: 1; }
 .poe-property { color: #aaa; font: 600 16px/1.35 var(--font-display), serif; font-variant: small-caps; letter-spacing: .035em; }
 .poe-property span { color: #8f8f8f; }
@@ -416,10 +417,12 @@ footer a:hover { color: var(--blood); }
   .cost-inputs, .cost-results { padding: 32px 22px 36px; }
   .simulator-controls, .simulator-stage { padding: 32px 22px 36px; }
   .simulator-actions { grid-template-columns: 1fr; }
-  .item-display { min-height: 320px; }
+  .item-display { min-height: 430px; }
   .poe-nameplate h3 { font-size: 18px; }
   .poe-nameplate strong { font-size: 15px; }
-  .poe-tooltip-body { min-height: 206px; padding-left: 18px; padding-right: 18px; }
+  .poe-tooltip-body { min-height: 300px; padding-left: 18px; padding-right: 18px; }
+  .poe-art-area { min-height: 148px; }
+  .poe-item-art { max-width: 150px; max-height: 148px; }
   .poe-implicit { font-size: 13px; }
   .share-row { align-items: flex-start; flex-direction: column; }
   .cost-projections { grid-template-columns: 1fr; }

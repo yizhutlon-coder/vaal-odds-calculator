@@ -247,7 +247,9 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
               {selectedItem.rarity === "unique" && <strong>{selectedItem.baseType}</strong>}
             </div>
             <div className="poe-tooltip-body">
-              {selectedItem.imageUrl && <img className="poe-item-watermark" src={selectedItem.imageUrl} alt="" aria-hidden="true" />}
+              <div className="poe-art-area">
+                {selectedItem.imageUrl && <img className="poe-item-art" src={selectedItem.imageUrl} alt="" aria-hidden="true" />}
+              </div>
               <div className="poe-property poe-class">{selectedItem.classId}</div>
               <div className="poe-property"><span>Item Level:</span> <b>{itemLevel}</b></div>
               <div className="poe-separator" aria-hidden="true" />

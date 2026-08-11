@@ -189,9 +189,9 @@ function renderSimulator() {
   $("sim-base-name").hidden = item.rarity !== "unique";
   $("sim-item-class").textContent = item.classId;
   $("sim-item-level").textContent = simState.itemLevel;
-  const watermark = $("sim-item-watermark");
-  watermark.hidden = !item.imageUrl;
-  if (item.imageUrl) watermark.src = item.imageUrl;
+  const itemArt = $("sim-item-art");
+  itemArt.hidden = !item.imageUrl;
+  if (item.imageUrl) itemArt.src = item.imageUrl;
   const implicitLines = $("sim-implicit-lines");
   implicitLines.replaceChildren();
   for (const rolledMod of simState.result?.rolledMods || []) {
