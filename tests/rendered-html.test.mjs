@@ -25,6 +25,7 @@ test("server-renders the calculator and simulator", async () => {
   assert.match(html, /Find an item/);
   assert.match(html, /Socket Color/i);
   assert.match(html, /Copy luck link/i);
+  assert.ok(html.indexOf('aria-label="Corruption simulator"') < html.indexOf('aria-label="Corruption chance calculator"'));
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
@@ -49,6 +50,7 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(app, /rollModifierRanges/);
   assert.match(app, /simRolls/);
   assert.match(app, /simItem/);
+  assert.match(app, /calculatorShell\.before\(simulatorShell\)/);
   assert.match(component, /rolledMods/);
   assert.match(component, /Math\.min\(first, second\)/);
   assert.match(component, /rare-bricked/);

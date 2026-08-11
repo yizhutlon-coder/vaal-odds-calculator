@@ -168,12 +168,14 @@ export default function Home() {
         </p>
       </section>
 
+      <CorruptionSimulator method={method} onMethodChange={setMethod} bases={BASES} />
+
       <section className="calculator-shell" aria-label="Corruption chance calculator">
         <div className="rune rune-one" aria-hidden="true" />
         <div className="rune rune-two" aria-hidden="true" />
 
         <div className="inputs-panel">
-          <div className="section-kicker"><span>01</span> Choose the sacrifice</div>
+          <div className="section-kicker"><span>02</span> Choose the sacrifice</div>
 
           <div className="method-toggle" role="radiogroup" aria-label="Corruption method">
             <button type="button" role="radio" aria-checked={method === "vaal"} className={method === "vaal" ? "active" : ""} onClick={() => setMethod("vaal")}>
@@ -230,7 +232,7 @@ export default function Home() {
         </div>
 
         <div className="results-panel" aria-live="polite">
-          <div className="section-kicker light"><span>02</span> Read the omen</div>
+          <div className="section-kicker light"><span>03</span> Read the omen</div>
           <div className="odds-label">CHANCE PER {method === "locus" ? "LOCUS ALTAR" : "VAAL ORB"}</div>
           <div className={`big-odds ${perAttemptChance ? "" : "zero-odds"}`}>{oneIn(perAttemptChance)}</div>
           <div className="big-percent">{percent(perAttemptChance)} exact chance</div>
@@ -272,8 +274,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <CorruptionSimulator method={method} onMethodChange={setMethod} bases={BASES} />
 
       <section className="cost-shell" aria-label="Corruption cost calculator">
         <div className="cost-inputs">

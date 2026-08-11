@@ -65,6 +65,9 @@ const simState = {
   } : null,
 };
 const $ = (id) => document.getElementById(id);
+const simulatorShell = $("simulator");
+const calculatorShell = document.querySelector(".calculator-shell");
+if (simulatorShell && calculatorShell) calculatorShell.before(simulatorShell);
 
 function weightFor(mod, base) {
   for (const spawn of mod.spawnWeights) if (base.tags.includes(spawn.tag)) return spawn.weight;

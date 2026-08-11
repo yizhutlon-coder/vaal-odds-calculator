@@ -192,7 +192,7 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
   return (
     <section className="simulator-shell" id="simulator" aria-label="Corruption simulator">
       <div className="simulator-controls">
-        <div className="section-kicker"><span>03</span> Tempt fate</div>
+        <div className="section-kicker"><span>01</span> Tempt fate</div>
         <h2>Corrupt it yourself.</h2>
         <p className="simulator-intro">Choose a real equipment base or unique, set its item level, then take the gamble.</p>
 
