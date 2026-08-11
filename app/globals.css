@@ -307,6 +307,10 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .poe-implicit { max-width: 100%; margin: 2px 0; color: #8888ff; font: 600 15px/1.27 var(--font-display), serif; overflow-wrap: anywhere; text-transform: uppercase; text-shadow: 0 0 8px rgba(96,96,255,.12); }
 .poe-corrupted { margin: 12px 0 0; color: #d20000; font: 700 17px/1 var(--font-display), serif; letter-spacing: .045em; }
 .item-frame.item-revealed { animation: item-tooltip-reveal .45s cubic-bezier(.2,.8,.2,1) both; }
+.item-frame.destroyed-hidden { display: none; }
+.destroyed-gif { width: min(100%, 430px); min-height: 306px; display: grid; place-items: center; overflow: hidden; border: 2px solid #3f2522; background: #050505; box-shadow: 0 26px 48px rgba(0,0,0,.5); }
+.destroyed-gif[hidden] { display: none; }
+.destroyed-gif img { width: 100%; height: auto; display: block; object-fit: contain; }
 .result-overlay { width: min(100%, 430px); margin: -10px auto 24px; padding: 9px 13px 10px; position: relative; display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 4px 10px; text-align: left; border: 1px solid rgba(190,55,48,.28); border-left: 3px solid rgba(190,55,48,.58); background: rgba(12,11,10,.58); box-shadow: 0 10px 24px rgba(0,0,0,.2); backdrop-filter: blur(2px); animation: corruption-reveal .38s cubic-bezier(.2,.8,.2,1) both; }
 .result-overlay > span { color: #9a8d7e; font-size: 7px; font-weight: 900; letter-spacing: .16em; white-space: nowrap; }
 .result-overlay > strong { color: #f4dfb7; font: 650 14px/1.1 var(--font-display), serif; letter-spacing: .015em; text-transform: uppercase; }

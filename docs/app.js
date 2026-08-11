@@ -184,7 +184,10 @@ function renderSimulator() {
   $("sim-level-output").textContent = simState.itemLevel;
   const itemFrame = $("sim-item-frame");
   const isRareBrick = simState.result?.kind === "rare";
+  const isDestroyed = simState.result?.kind === "destroyed";
   itemFrame.className = `item-frame poe-tooltip ${item.rarity}${isRareBrick ? " rare-bricked" : ""}`;
+  itemFrame.hidden = isDestroyed;
+  $("destroyed-gif").hidden = !isDestroyed;
   $("sim-item-name").textContent = isRareBrick ? item.baseType : item.name;
   $("sim-base-name").textContent = item.rarity === "unique" && !isRareBrick ? item.baseType : "";
   $("sim-base-name").hidden = item.rarity !== "unique" || isRareBrick;
@@ -214,7 +217,7 @@ function renderSimulator() {
   $("sim-eligible").textContent = pool.length.toLocaleString();
   $("sim-catalog-count").textContent = `${window.GAME_ITEMS.length.toLocaleString()} items`;
   const overlay = $("result-overlay");
-  const overlayResult = simState.result && !inlineResult;
+  const overlayResult = simState.result && !inlineResult && !isRareBrick;
   overlay.hidden = !overlayResult;
   if (overlayResult) {
     overlay.className = `result-overlay ${simState.result.kind}`;

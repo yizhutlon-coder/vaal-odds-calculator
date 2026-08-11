@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { CORRUPTION_MODS, type CorruptionMod } from "./data/corruption-mods";
 import { GAME_ITEMS, type GameItem } from "./data/items";
 
+const DESTROYED_GIF_URL = "https://media1.tenor.com/m/M3YRIg48Te0AAAAC/%E3%81%A1%E3%81%84%E3%81%8B%E3%82%8F-%E3%83%8F%E3%83%81%E3%83%AF%E3%83%AC.gif";
+const DESTROYED_GIF_PAGE = "https://tenor.com/view/%E3%81%A1%E3%81%84%E3%81%8B%E3%82%8F-%E3%83%8F%E3%83%81%E3%83%AF%E3%83%AC-gif-26619000";
+
 type BaseCategory = { id: string; tags: string[] };
 type CorruptionMethod = "vaal" | "locus";
 type ItemFilter = "all" | "base" | "unique";
@@ -241,7 +244,7 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
       <div className="simulator-stage">
         <div className="stage-topline"><span>ATTEMPTS</span><strong>{attempts.toLocaleString()}</strong></div>
         <div className={`item-display ${result?.kind ?? ""}`}>
-          <div className={`item-frame poe-tooltip ${selectedItem.rarity} ${result?.kind === "rare" ? "rare-bricked" : ""} ${result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" || result?.kind === "socket" ? "item-revealed" : ""}`} key={`${selectedItem.id}-${revealKey}`}>
+          <div className={`item-frame poe-tooltip ${selectedItem.rarity} ${result?.kind === "rare" ? "rare-bricked" : ""} ${result?.kind === "destroyed" ? "destroyed-hidden" : ""} ${result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" || result?.kind === "socket" ? "item-revealed" : ""}`} key={`${selectedItem.id}-${revealKey}`}>
             <div className="poe-nameplate">
               <h3>{result?.kind === "rare" ? selectedItem.baseType : selectedItem.name}</h3>
               {selectedItem.rarity === "unique" && result?.kind !== "rare" && <strong>{selectedItem.baseType}</strong>}
@@ -264,9 +267,15 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
             </div>
           </div>
 
+          {result?.kind === "destroyed" && (
+            <a className="destroyed-gif" href={DESTROYED_GIF_PAGE} target="_blank" rel="noreferrer" aria-label="Open the destroyed-item animation on Tenor">
+              <img src={DESTROYED_GIF_URL} alt="Cartoon reaction to the item being destroyed" />
+            </a>
+          )}
+
         </div>
 
-        {result && result.kind !== "implicit" && result.kind !== "nothing" && result.kind !== "socket" && (
+        {result && result.kind !== "implicit" && result.kind !== "nothing" && result.kind !== "socket" && result.kind !== "rare" && (
           <div className={`result-overlay ${result.kind}`} key={revealKey}>
             <span>{result.kind === "destroyed" ? "✕" : "VAAL RESULT"}</span>
             <strong>{result.title}</strong>

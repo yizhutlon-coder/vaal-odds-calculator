@@ -42,6 +42,8 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(html, /class="item-frame poe-tooltip unique"/);
   assert.match(html, />CORRUPTED</);
   assert.match(html, /id="socket-color-label"/);
+  assert.match(html, /id="destroyed-gif"/);
+  assert.match(html, /media1\.tenor\.com\/m\/M3YRIg48Te0AAAAC/);
   assert.ok(html.indexOf('id="sim-implicit-block"') < html.indexOf('id="sim-item-art"'));
   assert.match(app, /simulateCorruption/);
   assert.match(app, /rollModifierRanges/);
@@ -53,6 +55,8 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(component, /result\?\.kind === "rare" \|\| result\?\.kind === "socket"\) && <p className="poe-corrupted">CORRUPTED/);
   assert.match(component, /result\?\.kind === "rare" \? selectedItem\.baseType : selectedItem\.name/);
   assert.match(component, /className="socket-color-label">Socket Color/);
+  assert.match(component, /result\.kind !== "rare"/);
+  assert.match(component, /className="destroyed-gif"/);
   assert.match(data, /window\.GAME_ITEMS/);
   assert.match(data, /Shavronne's Wrappings/);
 });
