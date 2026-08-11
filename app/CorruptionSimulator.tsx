@@ -241,26 +241,27 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
       <div className="simulator-stage">
         <div className="stage-topline"><span>ATTEMPTS</span><strong>{attempts.toLocaleString()}</strong></div>
         <div className={`item-display ${result?.kind ?? ""}`}>
-          <div className={`item-frame poe-tooltip ${selectedItem.rarity} ${result?.kind === "rare" ? "rare-bricked" : ""} ${result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" ? "item-revealed" : ""}`} key={`${selectedItem.id}-${revealKey}`}>
+          <div className={`item-frame poe-tooltip ${selectedItem.rarity} ${result?.kind === "rare" ? "rare-bricked" : ""} ${result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" || result?.kind === "socket" ? "item-revealed" : ""}`} key={`${selectedItem.id}-${revealKey}`}>
             <div className="poe-nameplate">
-              <h3>{selectedItem.name}</h3>
-              {selectedItem.rarity === "unique" && <strong>{selectedItem.baseType}</strong>}
+              <h3>{result?.kind === "rare" ? selectedItem.baseType : selectedItem.name}</h3>
+              {selectedItem.rarity === "unique" && result?.kind !== "rare" && <strong>{selectedItem.baseType}</strong>}
             </div>
             <div className="poe-tooltip-body">
               <div className="poe-art-area">
                 {selectedItem.imageUrl && <img className="poe-item-art" src={selectedItem.imageUrl} alt="" aria-hidden="true" />}
+                {result?.kind === "socket" && <div className="socket-color-label">Socket Color</div>}
               </div>
               <div className="poe-property poe-class">{selectedItem.classId}</div>
               <div className="poe-property"><span>Item Level:</span> <b>{itemLevel}</b></div>
               <div className="poe-separator" aria-hidden="true" />
               {result?.rolledMods.map((rolledMod, index) => <p className="poe-implicit" key={`${rolledMod}-${index}`}>{rolledMod}</p>)}
-              {(result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare") && <p className="poe-corrupted">CORRUPTED</p>}
+              {(result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" || result?.kind === "socket") && <p className="poe-corrupted">CORRUPTED</p>}
             </div>
           </div>
 
         </div>
 
-        {result && result.kind !== "implicit" && result.kind !== "nothing" && (
+        {result && result.kind !== "implicit" && result.kind !== "nothing" && result.kind !== "socket" && (
           <div className={`result-overlay ${result.kind}`} key={revealKey}>
             <span>{result.kind === "destroyed" ? "✕" : "VAAL RESULT"}</span>
             <strong>{result.title}</strong>

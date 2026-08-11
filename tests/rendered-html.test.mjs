@@ -41,6 +41,7 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(html, /SOCKET COLOR/);
   assert.match(html, /class="item-frame poe-tooltip unique"/);
   assert.match(html, />CORRUPTED</);
+  assert.match(html, /id="socket-color-label"/);
   assert.match(app, /simulateCorruption/);
   assert.match(app, /rollModifierRanges/);
   assert.match(app, /simRolls/);
@@ -48,7 +49,9 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(component, /rolledMods/);
   assert.match(component, /Math\.min\(first, second\)/);
   assert.match(component, /rare-bricked/);
-  assert.match(component, /result\?\.kind === "rare"\) && <p className="poe-corrupted">CORRUPTED/);
+  assert.match(component, /result\?\.kind === "rare" \|\| result\?\.kind === "socket"\) && <p className="poe-corrupted">CORRUPTED/);
+  assert.match(component, /result\?\.kind === "rare" \? selectedItem\.baseType : selectedItem\.name/);
+  assert.match(component, /className="socket-color-label">Socket Color/);
   assert.match(data, /window\.GAME_ITEMS/);
   assert.match(data, /Shavronne's Wrappings/);
 });

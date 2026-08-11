@@ -183,15 +183,17 @@ function renderSimulator() {
   $("sim-level").style.setProperty("--level", `${simState.itemLevel}%`);
   $("sim-level-output").textContent = simState.itemLevel;
   const itemFrame = $("sim-item-frame");
-  itemFrame.className = `item-frame poe-tooltip ${item.rarity}${simState.result?.kind === "rare" ? " rare-bricked" : ""}`;
-  $("sim-item-name").textContent = item.name;
-  $("sim-base-name").textContent = item.rarity === "unique" ? item.baseType : "";
-  $("sim-base-name").hidden = item.rarity !== "unique";
+  const isRareBrick = simState.result?.kind === "rare";
+  itemFrame.className = `item-frame poe-tooltip ${item.rarity}${isRareBrick ? " rare-bricked" : ""}`;
+  $("sim-item-name").textContent = isRareBrick ? item.baseType : item.name;
+  $("sim-base-name").textContent = item.rarity === "unique" && !isRareBrick ? item.baseType : "";
+  $("sim-base-name").hidden = item.rarity !== "unique" || isRareBrick;
   $("sim-item-class").textContent = item.classId;
   $("sim-item-level").textContent = simState.itemLevel;
   const itemArt = $("sim-item-art");
   itemArt.hidden = !item.imageUrl;
   if (item.imageUrl) itemArt.src = item.imageUrl;
+  $("socket-color-label").hidden = simState.result?.kind !== "socket";
   const implicitLines = $("sim-implicit-lines");
   implicitLines.replaceChildren();
   for (const rolledMod of simState.result?.rolledMods || []) {
@@ -200,7 +202,7 @@ function renderSimulator() {
     line.textContent = rolledMod;
     implicitLines.append(line);
   }
-  const inlineResult = simState.result?.kind === "implicit" || simState.result?.kind === "nothing";
+  const inlineResult = simState.result?.kind === "implicit" || simState.result?.kind === "nothing" || simState.result?.kind === "socket";
   const showsCorruptedTag = inlineResult || simState.result?.kind === "rare";
   $("sim-corrupted").hidden = !showsCorruptedTag;
   if (showsCorruptedTag) {
