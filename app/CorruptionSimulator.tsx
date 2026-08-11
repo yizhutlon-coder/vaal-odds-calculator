@@ -241,7 +241,7 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
       <div className="simulator-stage">
         <div className="stage-topline"><span>ATTEMPTS</span><strong>{attempts.toLocaleString()}</strong></div>
         <div className={`item-display ${result?.kind ?? ""}`}>
-          <div className={`item-frame poe-tooltip ${selectedItem.rarity} ${result?.kind === "implicit" || result?.kind === "nothing" ? "item-revealed" : ""}`} key={`${selectedItem.id}-${revealKey}`}>
+          <div className={`item-frame poe-tooltip ${selectedItem.rarity} ${result?.kind === "rare" ? "rare-bricked" : ""} ${result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" ? "item-revealed" : ""}`} key={`${selectedItem.id}-${revealKey}`}>
             <div className="poe-nameplate">
               <h3>{selectedItem.name}</h3>
               {selectedItem.rarity === "unique" && <strong>{selectedItem.baseType}</strong>}
@@ -254,7 +254,7 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
               <div className="poe-property"><span>Item Level:</span> <b>{itemLevel}</b></div>
               <div className="poe-separator" aria-hidden="true" />
               {result?.rolledMods.map((rolledMod, index) => <p className="poe-implicit" key={`${rolledMod}-${index}`}>{rolledMod}</p>)}
-              {(result?.kind === "implicit" || result?.kind === "nothing") && <p className="poe-corrupted">CORRUPTED</p>}
+              {(result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare") && <p className="poe-corrupted">CORRUPTED</p>}
             </div>
           </div>
 

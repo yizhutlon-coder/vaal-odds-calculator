@@ -284,6 +284,11 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .poe-nameplate strong { margin-top: 2px; font-size: 18px; }
 .item-frame.base .poe-nameplate { border-bottom-color: #76736e; background: linear-gradient(180deg, #252421, #080808 55%, #1c1b19); }
 .item-frame.base .poe-nameplate h3 { color: #d8d8d8; }
+.item-frame.rare-bricked { border-color: #716224; }
+.item-frame.rare-bricked .poe-nameplate { border-bottom-color: #8a7524; background: linear-gradient(180deg, #27220f, #0d0b05 52%, #211c0b); box-shadow: inset 0 0 0 1px rgba(228,196,69,.18), inset 0 8px 18px rgba(228,196,69,.07); }
+.item-frame.rare-bricked .poe-nameplate::before, .item-frame.rare-bricked .poe-nameplate::after { color: #b49a2f; text-shadow: 0 0 10px rgba(228,196,69,.42); }
+.item-frame.rare-bricked .poe-nameplate h3, .item-frame.rare-bricked .poe-nameplate strong { color: #e4c445; }
+.item-frame.rare-bricked .poe-separator { background: linear-gradient(90deg, transparent, #766622 20%, #ab9132 50%, #766622 80%, transparent); }
 .poe-tooltip-body { min-height: 330px; padding: 14px 28px 24px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: hidden; }
 .poe-art-area { width: 100%; min-height: 174px; margin-bottom: 12px; position: relative; z-index: 1; display: grid; place-items: center; background: radial-gradient(ellipse at center, rgba(92,75,54,.13), transparent 68%); }
 .poe-item-art { max-width: 178px; max-height: 174px; object-fit: contain; opacity: .92; filter: drop-shadow(0 9px 13px rgba(0,0,0,.72)) saturate(.92); pointer-events: none; }

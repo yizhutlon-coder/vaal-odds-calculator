@@ -183,7 +183,7 @@ function renderSimulator() {
   $("sim-level").style.setProperty("--level", `${simState.itemLevel}%`);
   $("sim-level-output").textContent = simState.itemLevel;
   const itemFrame = $("sim-item-frame");
-  itemFrame.className = `item-frame poe-tooltip ${item.rarity}`;
+  itemFrame.className = `item-frame poe-tooltip ${item.rarity}${simState.result?.kind === "rare" ? " rare-bricked" : ""}`;
   $("sim-item-name").textContent = item.name;
   $("sim-base-name").textContent = item.rarity === "unique" ? item.baseType : "";
   $("sim-base-name").hidden = item.rarity !== "unique";
@@ -201,8 +201,9 @@ function renderSimulator() {
     implicitLines.append(line);
   }
   const inlineResult = simState.result?.kind === "implicit" || simState.result?.kind === "nothing";
-  $("sim-corrupted").hidden = !inlineResult;
-  if (inlineResult) {
+  const showsCorruptedTag = inlineResult || simState.result?.kind === "rare";
+  $("sim-corrupted").hidden = !showsCorruptedTag;
+  if (showsCorruptedTag) {
     void itemFrame.offsetWidth;
     itemFrame.classList.add("item-revealed");
   }

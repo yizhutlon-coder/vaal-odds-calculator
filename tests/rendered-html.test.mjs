@@ -47,6 +47,8 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(app, /simItem/);
   assert.match(component, /rolledMods/);
   assert.match(component, /Math\.min\(first, second\)/);
+  assert.match(component, /rare-bricked/);
+  assert.match(component, /result\?\.kind === "rare"\) && <p className="poe-corrupted">CORRUPTED/);
   assert.match(data, /window\.GAME_ITEMS/);
   assert.match(data, /Shavronne's Wrappings/);
 });
