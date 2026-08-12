@@ -57,9 +57,12 @@ const simState = {
   filter: "all",
   itemLevel: Number.isFinite(sharedSimLevel) && sharedSimLevel >= 1 && sharedSimLevel <= 100 ? sharedSimLevel : 86,
   attempts: Number.isFinite(sharedSimAttempts) && sharedSimAttempts > 0 ? sharedSimAttempts : 0,
-  ritualCounts: { toucan: 0, kuduku: 0, chris: 0 },
-  ritualAvailable: false,
-  chosenRitual: null,
+  ritualResults: {
+    toucan: { choices: 0, successes: 0 },
+    kuduku: { choices: 0, successes: 0 },
+    chris: { choices: 0, successes: 0 },
+  },
+  pendingRitual: null,
   unluckyStreak: 0,
   outcomeCounts: { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 },
   implicitHistory: [],
@@ -71,6 +74,8 @@ const simState = {
   } : null,
 };
 const $ = (id) => document.getElementById(id);
+const RITUAL_KEYS = ["toucan", "kuduku", "chris"];
+const RITUAL_API_URL = "https://vaal-odds-calculator.thelordofnerds.chatgpt.site/api/ritual-stats";
 const simulatorShell = $("simulator");
 const calculatorShell = document.querySelector(".calculator-shell");
 if (simulatorShell && calculatorShell) calculatorShell.before(simulatorShell);
@@ -179,6 +184,45 @@ function simulatorPool() {
   };
 }
 
+function ritualSuccessRate(result) {
+  return result.choices ? `${((result.successes / result.choices) * 100).toFixed(1)}%` : "—";
+}
+
+function renderCommunityRitualStats(stats) {
+  for (const key of RITUAL_KEYS) {
+    const stat = stats.find((entry) => entry.ritual === key) || { choices: 0, successes: 0 };
+    $(`community-choices-${key}`).textContent = stat.choices.toLocaleString();
+    $(`community-success-${key}`).textContent = ritualSuccessRate(stat);
+  }
+  $("community-ritual-status").textContent = "Anonymous choices across every public gamble. Success means the implicit branch landed.";
+}
+
+async function loadCommunityRitualStats() {
+  try {
+    const response = await fetch(RITUAL_API_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error("Community totals unavailable");
+    const payload = await response.json();
+    if (Array.isArray(payload.stats)) renderCommunityRitualStats(payload.stats);
+  } catch {
+    $("community-ritual-status").textContent = "Community totals are temporarily unavailable; your run still works normally.";
+  }
+}
+
+async function recordCommunityRitual(ritual, success) {
+  try {
+    const response = await fetch(RITUAL_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ritual, success }),
+    });
+    if (!response.ok) return;
+    const payload = await response.json();
+    if (Array.isArray(payload.stats)) renderCommunityRitualStats(payload.stats);
+  } catch {
+    // Local run statistics remain available if the public tally cannot be reached.
+  }
+}
+
 function renderSimulator() {
   const item = simState.item;
   const { pool } = simulatorPool();
@@ -194,11 +238,14 @@ function renderSimulator() {
   }
   for (const button of document.querySelectorAll("[data-ritual]")) {
     const key = button.dataset.ritual;
-    button.disabled = !simState.ritualAvailable;
-    button.classList.toggle("chosen", simState.chosenRitual === key);
-    $(`ritual-count-${key}`).textContent = simState.ritualCounts[key].toLocaleString();
+    const result = simState.ritualResults[key];
+    const selected = simState.pendingRitual === key;
+    button.classList.toggle("chosen", selected);
+    button.setAttribute("aria-pressed", String(selected));
+    $(`ritual-rate-${key}`).textContent = `${result.choices.toLocaleString()} chosen · ${ritualSuccessRate(result)} success`;
+    $(`ritual-choice-${key}`).textContent = selected ? "SELECTED" : "PRAY";
   }
-  $("ritual-status").textContent = simState.ritualAvailable ? "Choose one for this attempt" : simState.chosenRitual ? "Ritual recorded" : "Corrupt once to earn a ritual";
+  $("ritual-status").textContent = simState.pendingRitual ? "Prayer selected for the next gamble" : "Choose one before the next gamble · optional";
   $("sim-level").value = simState.itemLevel;
   $("sim-level").style.setProperty("--level", `${simState.itemLevel}%`);
   $("sim-level-output").textContent = simState.itemLevel;
@@ -320,9 +367,12 @@ function renderItemSearch() {
       simState.query = item.name;
       simState.attempts = 0;
       simState.result = null;
-      simState.ritualCounts = { toucan: 0, kuduku: 0, chris: 0 };
-      simState.ritualAvailable = false;
-      simState.chosenRitual = null;
+      simState.ritualResults = {
+        toucan: { choices: 0, successes: 0 },
+        kuduku: { choices: 0, successes: 0 },
+        chris: { choices: 0, successes: 0 },
+      };
+      simState.pendingRitual = null;
       simState.unluckyStreak = 0;
       simState.outcomeCounts = { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 };
       simState.implicitHistory = [];
@@ -506,10 +556,11 @@ $("sim-level").addEventListener("input", (event) => {
 $("corrupt-button").addEventListener("click", () => {
   const { base, pool } = simulatorPool();
   const nextResult = simulateCorruption(state.method, pool, base);
+  const selectedRitual = simState.pendingRitual;
+  const ritualSucceeded = nextResult.kind === "implicit" && nextResult.rolledMods.length > 0;
   simState.result = nextResult;
   simState.attempts += 1;
-  simState.ritualAvailable = true;
-  simState.chosenRitual = null;
+  simState.pendingRitual = null;
   simState.unluckyStreak = nextResult.kind === "implicit" ? 0 : simState.unluckyStreak + 1;
   simState.outcomeCounts[nextResult.kind] += 1;
   if (nextResult.kind === "implicit" && nextResult.rolledMods.length) {
@@ -522,25 +573,29 @@ $("corrupt-button").addEventListener("click", () => {
       simState.implicitHistory.unshift({ key, result: nextResult, count: 1 });
     }
   }
+  if (selectedRitual) {
+    simState.ritualResults[selectedRitual].choices += 1;
+    if (ritualSucceeded) simState.ritualResults[selectedRitual].successes += 1;
+    void recordCommunityRitual(selectedRitual, ritualSucceeded);
+  }
   $("sim-share-status").textContent = "Share the item, outcome, and attempt count.";
   renderSimulator();
 });
 for (const button of document.querySelectorAll("[data-ritual]")) {
   button.addEventListener("click", () => {
-    if (!simState.ritualAvailable) return;
-    const key = button.dataset.ritual;
-    simState.ritualCounts[key] += 1;
-    simState.ritualAvailable = false;
-    simState.chosenRitual = key;
+    simState.pendingRitual = button.dataset.ritual;
     renderSimulator();
   });
 }
 $("sim-reset").addEventListener("click", () => {
   simState.attempts = 0;
   simState.result = null;
-  simState.ritualCounts = { toucan: 0, kuduku: 0, chris: 0 };
-  simState.ritualAvailable = false;
-  simState.chosenRitual = null;
+  simState.ritualResults = {
+    toucan: { choices: 0, successes: 0 },
+    kuduku: { choices: 0, successes: 0 },
+    chris: { choices: 0, successes: 0 },
+  };
+  simState.pendingRitual = null;
   simState.unluckyStreak = 0;
   simState.outcomeCounts = { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 };
   simState.implicitHistory = [];
@@ -571,4 +626,5 @@ for (const [id, key] of [["item-cost", "itemCost"], ["vaal-cost", "vaalCost"], [
   $(id).addEventListener("input", (event) => { state[key] = event.target.value; render(); });
 }
 fillBaseSelect();
+void loadCommunityRitualStats();
 render();

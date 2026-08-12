@@ -13,6 +13,8 @@ type CorruptionMethod = "vaal" | "locus";
 type ItemFilter = "all" | "base" | "unique";
 type OutcomeKind = "implicit" | "socket" | "rare" | "nothing" | "destroyed";
 type RitualKey = "toucan" | "kuduku" | "chris";
+type RitualStat = { ritual: RitualKey; choices: number; successes: number };
+type RitualResult = { choices: number; successes: number };
 type ImplicitHistoryEntry = { key: string; result: SimulationResult; count: number };
 
 const RITUALS: { key: RitualKey; label: string }[] = [
@@ -32,6 +34,18 @@ function emptyOutcomeCounts(): Record<OutcomeKind, number> {
   return { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 };
 }
 
+function emptyRitualResults(): Record<RitualKey, RitualResult> {
+  return {
+    toucan: { choices: 0, successes: 0 },
+    kuduku: { choices: 0, successes: 0 },
+    chris: { choices: 0, successes: 0 },
+  };
+}
+
+function ritualSuccessRate(result: RitualResult) {
+  return result.choices ? `${((result.successes / result.choices) * 100).toFixed(1)}%` : "—";
+}
+
 type SimulationResult = {
   kind: OutcomeKind;
   title: string;
@@ -44,6 +58,7 @@ type Props = {
   method: CorruptionMethod;
   onMethodChange: (method: CorruptionMethod) => void;
   bases: BaseCategory[];
+  onCommunityStatsChange?: (stats: RitualStat[]) => void;
 };
 
 function weightFor(mod: CorruptionMod, base: BaseCategory) {
@@ -106,7 +121,7 @@ function simulate(method: CorruptionMethod, pool: CorruptionMod[], base: BaseCat
   return { kind: "nothing", title: "NO CHANGE", detail: "Corrupted, but otherwise unchanged.", mods: [], rolledMods: [] };
 }
 
-export default function CorruptionSimulator({ method, onMethodChange, bases }: Props) {
+export default function CorruptionSimulator({ method, onMethodChange, bases, onCommunityStatsChange }: Props) {
   const defaultItem = GAME_ITEMS.find((item) => item.name === "Shavronne's Wrappings") ?? GAME_ITEMS.find((item) => item.rarity === "unique") ?? GAME_ITEMS[0];
   const [selectedItem, setSelectedItem] = useState<GameItem>(defaultItem);
   const [query, setQuery] = useState(defaultItem.name);
@@ -116,9 +131,8 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [revealKey, setRevealKey] = useState(0);
   const [shareStatus, setShareStatus] = useState("");
-  const [ritualCounts, setRitualCounts] = useState<Record<RitualKey, number>>({ toucan: 0, kuduku: 0, chris: 0 });
-  const [ritualAvailable, setRitualAvailable] = useState(false);
-  const [chosenRitual, setChosenRitual] = useState<RitualKey | null>(null);
+  const [ritualResults, setRitualResults] = useState<Record<RitualKey, RitualResult>>(emptyRitualResults);
+  const [pendingRitual, setPendingRitual] = useState<RitualKey | null>(null);
   const [unluckyStreak, setUnluckyStreak] = useState(0);
   const [outcomeCounts, setOutcomeCounts] = useState<Record<OutcomeKind, number>>(emptyOutcomeCounts);
   const [implicitHistory, setImplicitHistory] = useState<ImplicitHistoryEntry[]>([]);
@@ -178,9 +192,8 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
     setAttempts(0);
     setResult(null);
     setShareStatus("");
-    setRitualCounts({ toucan: 0, kuduku: 0, chris: 0 });
-    setRitualAvailable(false);
-    setChosenRitual(null);
+    setRitualResults(emptyRitualResults());
+    setPendingRitual(null);
     setUnluckyStreak(0);
     setOutcomeCounts(emptyOutcomeCounts());
     setImplicitHistory([]);
@@ -188,12 +201,13 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
 
   function corrupt() {
     const nextResult = simulate(method, eligiblePool, base);
+    const selectedRitual = pendingRitual;
+    const ritualSucceeded = nextResult.kind === "implicit" && nextResult.rolledMods.length > 0;
     setResult(nextResult);
     setAttempts((value) => value + 1);
     setRevealKey((value) => value + 1);
     setShareStatus("");
-    setRitualAvailable(true);
-    setChosenRitual(null);
+    setPendingRitual(null);
     setUnluckyStreak((value) => nextResult.kind === "implicit" ? 0 : value + 1);
     setOutcomeCounts((counts) => ({ ...counts, [nextResult.kind]: counts[nextResult.kind] + 1 }));
     if (nextResult.kind === "implicit" && nextResult.rolledMods.length) {
@@ -205,22 +219,43 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
           : [{ key, result: nextResult, count: 1 }, ...history];
       });
     }
+    if (selectedRitual) {
+      setRitualResults((results) => ({
+        ...results,
+        [selectedRitual]: {
+          choices: results[selectedRitual].choices + 1,
+          successes: results[selectedRitual].successes + (ritualSucceeded ? 1 : 0),
+        },
+      }));
+      void recordCommunityRitual(selectedRitual, ritualSucceeded);
+    }
   }
 
   function performRitual(key: RitualKey) {
-    if (!ritualAvailable) return;
-    setRitualCounts((counts) => ({ ...counts, [key]: counts[key] + 1 }));
-    setRitualAvailable(false);
-    setChosenRitual(key);
+    setPendingRitual(key);
+  }
+
+  async function recordCommunityRitual(ritual: RitualKey, success: boolean) {
+    try {
+      const response = await fetch("/api/ritual-stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ritual, success }),
+      });
+      if (!response.ok) return;
+      const payload = await response.json() as { stats?: RitualStat[] };
+      if (payload.stats?.length) onCommunityStatsChange?.(payload.stats);
+    } catch {
+      // The simulator remains fully usable when the anonymous community tally is unavailable.
+    }
   }
 
   function reset() {
     setAttempts(0);
     setResult(null);
     setShareStatus("");
-    setRitualCounts({ toucan: 0, kuduku: 0, chris: 0 });
-    setRitualAvailable(false);
-    setChosenRitual(null);
+    setRitualResults(emptyRitualResults());
+    setPendingRitual(null);
     setUnluckyStreak(0);
     setOutcomeCounts(emptyOutcomeCounts());
     setImplicitHistory([]);
@@ -298,11 +333,12 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
           <button type="button" className="reset-button" onClick={reset}>Reset run</button>
         </div>
         <div className="ritual-panel" aria-label="Pre-corruption rituals">
-          <div className="ritual-heading"><span>RITUALS</span><small>{ritualAvailable ? "Choose one for this attempt" : chosenRitual ? "Ritual recorded" : "Corrupt once to earn a ritual"}</small></div>
+          <div className="ritual-heading"><span>RITUALS</span><small>{pendingRitual ? "Prayer selected for the next gamble" : "Choose one before the next gamble · optional"}</small></div>
           <div className="ritual-actions">
             {RITUALS.map((ritual) => (
-              <button type="button" key={ritual.key} className={chosenRitual === ritual.key ? "chosen" : ""} disabled={!ritualAvailable} onClick={() => performRitual(ritual.key)}>
-                <span>{ritual.label}</span><strong>{ritualCounts[ritual.key].toLocaleString()}</strong>
+              <button type="button" key={ritual.key} className={pendingRitual === ritual.key ? "chosen" : ""} aria-pressed={pendingRitual === ritual.key} onClick={() => performRitual(ritual.key)}>
+                <span><b>{ritual.label}</b><small>{ritualResults[ritual.key].choices.toLocaleString()} chosen · {ritualSuccessRate(ritualResults[ritual.key])} success</small></span>
+                <strong>{pendingRitual === ritual.key ? "SELECTED" : "PRAY"}</strong>
               </button>
             ))}
           </div>

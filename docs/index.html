@@ -32,6 +32,19 @@
         <p>Pick a base class, item level, and desired corrupted implicit. Compare a Vaal Orb's single roll with a Locus of Corruption target appearing in either of two slots.</p>
       </section>
 
+      <section class="community-rituals" aria-label="Community ritual success rates">
+        <div class="community-ritual-copy">
+          <span>COMMUNITY RITUALS</span>
+          <strong>Who has the luck?</strong>
+          <p id="community-ritual-status">Anonymous choices across every public gamble. Success means the implicit branch landed.</p>
+        </div>
+        <div class="community-ritual-grid">
+          <div><span>Toucan</span><strong id="community-choices-toucan">0</strong><small>chosen · <b id="community-success-toucan">—</b> success</small></div>
+          <div><span>Kuduku</span><strong id="community-choices-kuduku">0</strong><small>chosen · <b id="community-success-kuduku">—</b> success</small></div>
+          <div><span>Chris</span><strong id="community-choices-chris">0</strong><small>chosen · <b id="community-success-chris">—</b> success</small></div>
+        </div>
+      </section>
+
       <section class="calculator-shell" aria-label="Corruption chance calculator">
         <div class="rune rune-one" aria-hidden="true"></div><div class="rune rune-two" aria-hidden="true"></div>
         <div class="inputs-panel">
@@ -123,11 +136,11 @@
             <button id="sim-reset" type="button" class="reset-button">Reset run</button>
           </div>
           <div class="ritual-panel" aria-label="Pre-corruption rituals">
-            <div class="ritual-heading"><span>RITUALS</span><small id="ritual-status">Corrupt once to earn a ritual</small></div>
+            <div class="ritual-heading"><span>RITUALS</span><small id="ritual-status">Choose one before the next gamble · optional</small></div>
             <div class="ritual-actions">
-              <button type="button" data-ritual="toucan" disabled><span>Praise Toucan</span><strong id="ritual-count-toucan">0</strong></button>
-              <button type="button" data-ritual="kuduku" disabled><span>Praise Kuduku</span><strong id="ritual-count-kuduku">0</strong></button>
-              <button type="button" data-ritual="chris" disabled><span>Pray to Chris</span><strong id="ritual-count-chris">0</strong></button>
+              <button type="button" data-ritual="toucan" aria-pressed="false"><span><b>Praise Toucan</b><small id="ritual-rate-toucan">0 chosen · — success</small></span><strong id="ritual-choice-toucan">PRAY</strong></button>
+              <button type="button" data-ritual="kuduku" aria-pressed="false"><span><b>Praise Kuduku</b><small id="ritual-rate-kuduku">0 chosen · — success</small></span><strong id="ritual-choice-kuduku">PRAY</strong></button>
+              <button type="button" data-ritual="chris" aria-pressed="false"><span><b>Pray to Chris</b><small id="ritual-rate-chris">0 chosen · — success</small></span><strong id="ritual-choice-chris">PRAY</strong></button>
             </div>
           </div>
         </div>

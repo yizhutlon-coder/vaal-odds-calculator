@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CORRUPTION_MODS, type CorruptionMod } from "./data/corruption-mods";
 import CorruptionSimulator from "./CorruptionSimulator";
 
@@ -12,6 +12,19 @@ type BaseCategory = {
 };
 
 type CorruptionMethod = "vaal" | "locus";
+type RitualKey = "toucan" | "kuduku" | "chris";
+export type RitualStat = { ritual: RitualKey; choices: number; successes: number };
+
+const RITUAL_LABELS: Record<RitualKey, string> = {
+  toucan: "Toucan",
+  kuduku: "Kuduku",
+  chris: "Chris",
+};
+const EMPTY_RITUAL_STATS: RitualStat[] = (["toucan", "kuduku", "chris"] as RitualKey[]).map((ritual) => ({ ritual, choices: 0, successes: 0 }));
+
+function successRate(stat: RitualStat) {
+  return stat.choices ? `${((stat.successes / stat.choices) * 100).toFixed(1)}%` : "—";
+}
 
 const BASES: BaseCategory[] = [
   { id: "helmet", label: "Helmet", family: "Armour", tags: ["helmet", "armour"] },
@@ -105,7 +118,25 @@ export default function Home() {
   const [vaalCostInput, setVaalCostInput] = useState("1");
   const [locusCostInput, setLocusCostInput] = useState("100");
   const [finishedCostInput, setFinishedCostInput] = useState("");
+  const [communityRitualStats, setCommunityRitualStats] = useState<RitualStat[]>(EMPTY_RITUAL_STATS);
+  const [communityStatsAvailable, setCommunityStatsAvailable] = useState(true);
   const base = BASES.find((entry) => entry.id === baseId) ?? BASES[6];
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ritual-stats", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Community totals unavailable");
+        return response.json() as Promise<{ stats?: RitualStat[] }>;
+      })
+      .then((payload) => {
+        if (active && payload.stats?.length) setCommunityRitualStats(payload.stats);
+      })
+      .catch(() => {
+        if (active) setCommunityStatsAvailable(false);
+      });
+    return () => { active = false; };
+  }, []);
 
   const compatibleMods = useMemo(
     () => CORRUPTION_MODS.filter((mod) => weightFor(mod, base) > 0),
@@ -168,7 +199,24 @@ export default function Home() {
         </p>
       </section>
 
-      <CorruptionSimulator method={method} onMethodChange={setMethod} bases={BASES} />
+      <section className="community-rituals" aria-label="Community ritual success rates">
+        <div className="community-ritual-copy">
+          <span>COMMUNITY RITUALS</span>
+          <strong>Who has the luck?</strong>
+          <p>{communityStatsAvailable ? "Anonymous choices across every public gamble. Success means the implicit branch landed." : "Community totals are temporarily unavailable; your run still works normally."}</p>
+        </div>
+        <div className="community-ritual-grid">
+          {communityRitualStats.map((stat) => (
+            <div key={stat.ritual}>
+              <span>{RITUAL_LABELS[stat.ritual]}</span>
+              <strong>{stat.choices.toLocaleString()}</strong>
+              <small>chosen · {successRate(stat)} success</small>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <CorruptionSimulator method={method} onMethodChange={setMethod} bases={BASES} onCommunityStatsChange={(stats) => { setCommunityRitualStats(stats); setCommunityStatsAvailable(true); }} />
 
       <section className="calculator-shell" aria-label="Corruption chance calculator">
         <div className="rune rune-one" aria-hidden="true" />
