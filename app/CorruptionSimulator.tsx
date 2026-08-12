@@ -12,6 +12,25 @@ type BaseCategory = { id: string; tags: string[] };
 type CorruptionMethod = "vaal" | "locus";
 type ItemFilter = "all" | "base" | "unique";
 type OutcomeKind = "implicit" | "socket" | "rare" | "nothing" | "destroyed";
+type RitualKey = "toucan" | "kuduku" | "chris";
+type ImplicitHistoryEntry = { key: string; result: SimulationResult; count: number };
+
+const RITUALS: { key: RitualKey; label: string }[] = [
+  { key: "toucan", label: "Praise Toucan" },
+  { key: "kuduku", label: "Praise Kuduku" },
+  { key: "chris", label: "Pray to Chris" },
+];
+const OUTCOME_LABELS: { key: OutcomeKind; label: string }[] = [
+  { key: "implicit", label: "Implicit" },
+  { key: "socket", label: "Socket Color" },
+  { key: "rare", label: "Krangled" },
+  { key: "nothing", label: "No Change" },
+  { key: "destroyed", label: "Destroyed" },
+];
+
+function emptyOutcomeCounts(): Record<OutcomeKind, number> {
+  return { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 };
+}
 
 type SimulationResult = {
   kind: OutcomeKind;
@@ -97,6 +116,12 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [revealKey, setRevealKey] = useState(0);
   const [shareStatus, setShareStatus] = useState("");
+  const [ritualCounts, setRitualCounts] = useState<Record<RitualKey, number>>({ toucan: 0, kuduku: 0, chris: 0 });
+  const [ritualAvailable, setRitualAvailable] = useState(false);
+  const [chosenRitual, setChosenRitual] = useState<RitualKey | null>(null);
+  const [unluckyStreak, setUnluckyStreak] = useState(0);
+  const [outcomeCounts, setOutcomeCounts] = useState<Record<OutcomeKind, number>>(emptyOutcomeCounts);
+  const [implicitHistory, setImplicitHistory] = useState<ImplicitHistoryEntry[]>([]);
 
   useEffect(() => {
     const loadSharedResult = window.setTimeout(() => {
@@ -153,19 +178,52 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
     setAttempts(0);
     setResult(null);
     setShareStatus("");
+    setRitualCounts({ toucan: 0, kuduku: 0, chris: 0 });
+    setRitualAvailable(false);
+    setChosenRitual(null);
+    setUnluckyStreak(0);
+    setOutcomeCounts(emptyOutcomeCounts());
+    setImplicitHistory([]);
   }
 
   function corrupt() {
-    setResult(simulate(method, eligiblePool, base));
+    const nextResult = simulate(method, eligiblePool, base);
+    setResult(nextResult);
     setAttempts((value) => value + 1);
     setRevealKey((value) => value + 1);
     setShareStatus("");
+    setRitualAvailable(true);
+    setChosenRitual(null);
+    setUnluckyStreak((value) => nextResult.kind === "implicit" ? 0 : value + 1);
+    setOutcomeCounts((counts) => ({ ...counts, [nextResult.kind]: counts[nextResult.kind] + 1 }));
+    if (nextResult.kind === "implicit" && nextResult.rolledMods.length) {
+      const key = nextResult.rolledMods.join(" | ");
+      setImplicitHistory((history) => {
+        const existing = history.find((entry) => entry.key === key);
+        return existing
+          ? history.map((entry) => entry.key === key ? { ...entry, count: entry.count + 1, result: nextResult } : entry)
+          : [{ key, result: nextResult, count: 1 }, ...history];
+      });
+    }
+  }
+
+  function performRitual(key: RitualKey) {
+    if (!ritualAvailable) return;
+    setRitualCounts((counts) => ({ ...counts, [key]: counts[key] + 1 }));
+    setRitualAvailable(false);
+    setChosenRitual(key);
   }
 
   function reset() {
     setAttempts(0);
     setResult(null);
     setShareStatus("");
+    setRitualCounts({ toucan: 0, kuduku: 0, chris: 0 });
+    setRitualAvailable(false);
+    setChosenRitual(null);
+    setUnluckyStreak(0);
+    setOutcomeCounts(emptyOutcomeCounts());
+    setImplicitHistory([]);
   }
 
   async function share() {
@@ -239,6 +297,16 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
           <button type="button" className="corrupt-button" onClick={corrupt}>{method === "locus" ? "OFFER TO THE LOCUS" : "USE VAAL ORB"}</button>
           <button type="button" className="reset-button" onClick={reset}>Reset run</button>
         </div>
+        <div className="ritual-panel" aria-label="Pre-corruption rituals">
+          <div className="ritual-heading"><span>RITUALS</span><small>{ritualAvailable ? "Choose one for this attempt" : chosenRitual ? "Ritual recorded" : "Corrupt once to earn a ritual"}</small></div>
+          <div className="ritual-actions">
+            {RITUALS.map((ritual) => (
+              <button type="button" key={ritual.key} className={chosenRitual === ritual.key ? "chosen" : ""} disabled={!ritualAvailable} onClick={() => performRitual(ritual.key)}>
+                <span>{ritual.label}</span><strong>{ritualCounts[ritual.key].toLocaleString()}</strong>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="simulator-stage">
@@ -263,7 +331,7 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
               <div className="poe-property poe-class">{selectedItem.classId}</div>
               <div className="poe-property"><span>Item Level:</span> <b>{itemLevel}</b></div>
               <div className="poe-separator" aria-hidden="true" />
-              {(result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" || result?.kind === "socket") && <p className="poe-corrupted">CORRUPTED</p>}
+              {(result?.kind === "implicit" || result?.kind === "nothing" || result?.kind === "rare" || result?.kind === "socket") && <p className="poe-corrupted">{result.kind === "rare" ? "KRANGLED" : "CORRUPTED"}</p>}
             </div>
           </div>
 
@@ -275,6 +343,13 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
 
         </div>
 
+        {unluckyStreak >= 10 && (
+          <div className="unlucky-reaction" role="status">
+            <img src="/chris-unlucky.png" alt="Chris Wilson watching over an unlucky corruption streak" />
+            <div><span>THE VISION ENDURES</span><strong>Long unlucky streak</strong><p>{unluckyStreak} attempts without an implicit.</p></div>
+          </div>
+        )}
+
         {result && result.kind !== "implicit" && result.kind !== "nothing" && result.kind !== "socket" && result.kind !== "rare" && (
           <div className={`result-overlay ${result.kind}`} key={revealKey}>
             <span>{result.kind === "destroyed" ? "✕" : "VAAL RESULT"}</span>
@@ -282,6 +357,27 @@ export default function CorruptionSimulator({ method, onMethodChange, bases }: P
             <p>{result.detail}</p>
           </div>
         )}
+
+        <div className="run-ledger" aria-label="Outcomes this run">
+          <div className="run-ledger-heading"><span>THIS RUN</span><strong>{attempts.toLocaleString()} attempts</strong></div>
+          <div className="outcome-counts">
+            {OUTCOME_LABELS.map((outcome) => <div key={outcome.key}><span>{outcome.label}</span><strong>{outcomeCounts[outcome.key].toLocaleString()}</strong></div>)}
+          </div>
+          <div className="implicit-history">
+            <div className="implicit-history-heading"><span>IMPLICIT ROLLS</span><small>Click one to view</small></div>
+            {implicitHistory.length ? (
+              <div className="implicit-history-list">
+                {implicitHistory.map((entry) => (
+                  <button type="button" key={entry.key} onClick={() => { setResult(entry.result); setRevealKey((value) => value + 1); }}>
+                    <span>{entry.result.rolledMods.join(" + ")}</span>
+                    <strong>{attempts ? ((entry.count / attempts) * 100).toFixed(1) : "0.0"}%</strong>
+                    <small>×{entry.count}</small>
+                  </button>
+                ))}
+              </div>
+            ) : <p>No implicit outcomes yet.</p>}
+          </div>
+        </div>
 
         <div className="simulator-readout">
           <div><span>Eligible implicits</span><strong>{eligiblePool.length}</strong></div>

@@ -26,5 +26,6 @@ await writeFile(
 await writeFile(new URL("styles.css", docs), staticCss, "utf8");
 await copyFile(new URL("public/favicon.svg", root), new URL("favicon.svg", docs));
 await copyFile(new URL("public/og.png", root), new URL("og.png", docs));
+await copyFile(new URL("public/chris-unlucky.png", root), new URL("chris-unlucky.png", docs));
 
 console.log("GitHub Pages files generated in docs/.");

@@ -57,6 +57,12 @@ const simState = {
   filter: "all",
   itemLevel: Number.isFinite(sharedSimLevel) && sharedSimLevel >= 1 && sharedSimLevel <= 100 ? sharedSimLevel : 86,
   attempts: Number.isFinite(sharedSimAttempts) && sharedSimAttempts > 0 ? sharedSimAttempts : 0,
+  ritualCounts: { toucan: 0, kuduku: 0, chris: 0 },
+  ritualAvailable: false,
+  chosenRitual: null,
+  unluckyStreak: 0,
+  outcomeCounts: { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 },
+  implicitHistory: [],
   result: sharedSimOutcome && simParams.get("simTitle") && simParams.get("simDetail") ? {
     kind: sharedSimOutcome,
     title: simParams.get("simTitle"),
@@ -182,6 +188,17 @@ function renderSimulator() {
   $("sim-method-locus").setAttribute("aria-checked", String(state.method === "locus"));
   $("corrupt-button").textContent = state.method === "locus" ? "OFFER TO THE LOCUS" : "USE VAAL ORB";
   $("sim-attempts").textContent = simState.attempts.toLocaleString();
+  $("run-attempts").textContent = `${simState.attempts.toLocaleString()} attempts`;
+  for (const kind of ["implicit", "socket", "rare", "nothing", "destroyed"]) {
+    $(`outcome-count-${kind}`).textContent = simState.outcomeCounts[kind].toLocaleString();
+  }
+  for (const button of document.querySelectorAll("[data-ritual]")) {
+    const key = button.dataset.ritual;
+    button.disabled = !simState.ritualAvailable;
+    button.classList.toggle("chosen", simState.chosenRitual === key);
+    $(`ritual-count-${key}`).textContent = simState.ritualCounts[key].toLocaleString();
+  }
+  $("ritual-status").textContent = simState.ritualAvailable ? "Choose one for this attempt" : simState.chosenRitual ? "Ritual recorded" : "Corrupt once to earn a ritual";
   $("sim-level").value = simState.itemLevel;
   $("sim-level").style.setProperty("--level", `${simState.itemLevel}%`);
   $("sim-level-output").textContent = simState.itemLevel;
@@ -213,6 +230,7 @@ function renderSimulator() {
   const inlineResult = simState.result?.kind === "implicit" || simState.result?.kind === "nothing" || simState.result?.kind === "socket";
   const showsCorruptedTag = inlineResult || simState.result?.kind === "rare";
   $("sim-corrupted").hidden = !showsCorruptedTag;
+  $("sim-corrupted").textContent = simState.result?.kind === "rare" ? "KRANGLED" : "CORRUPTED";
   if (showsCorruptedTag) {
     void itemFrame.offsetWidth;
     itemFrame.classList.add("item-revealed");
@@ -228,6 +246,28 @@ function renderSimulator() {
     $("result-title").textContent = simState.result.title;
     $("result-detail").textContent = simState.result.detail;
   }
+  const unluckyReaction = $("unlucky-reaction");
+  unluckyReaction.hidden = simState.unluckyStreak < 10;
+  $("unlucky-count").textContent = simState.unluckyStreak.toLocaleString();
+  const historyList = $("implicit-history-list");
+  historyList.replaceChildren();
+  for (const entry of simState.implicitHistory) {
+    const button = document.createElement("button");
+    button.type = "button";
+    const roll = document.createElement("span");
+    const percent = document.createElement("strong");
+    const count = document.createElement("small");
+    roll.textContent = entry.result.rolledMods.join(" + ");
+    percent.textContent = `${simState.attempts ? ((entry.count / simState.attempts) * 100).toFixed(1) : "0.0"}%`;
+    count.textContent = `×${entry.count}`;
+    button.append(roll, percent, count);
+    button.addEventListener("click", () => {
+      simState.result = entry.result;
+      renderSimulator();
+    });
+    historyList.append(button);
+  }
+  $("implicit-history-empty").hidden = simState.implicitHistory.length > 0;
   $("sim-share").disabled = !simState.result;
 }
 
@@ -280,6 +320,12 @@ function renderItemSearch() {
       simState.query = item.name;
       simState.attempts = 0;
       simState.result = null;
+      simState.ritualCounts = { toucan: 0, kuduku: 0, chris: 0 };
+      simState.ritualAvailable = false;
+      simState.chosenRitual = null;
+      simState.unluckyStreak = 0;
+      simState.outcomeCounts = { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 };
+      simState.implicitHistory = [];
       $("item-search").value = item.name;
       $("sim-share-status").textContent = "Share the item, outcome, and attempt count.";
       list.hidden = true;
@@ -459,14 +505,45 @@ $("sim-level").addEventListener("input", (event) => {
 });
 $("corrupt-button").addEventListener("click", () => {
   const { base, pool } = simulatorPool();
-  simState.result = simulateCorruption(state.method, pool, base);
+  const nextResult = simulateCorruption(state.method, pool, base);
+  simState.result = nextResult;
   simState.attempts += 1;
+  simState.ritualAvailable = true;
+  simState.chosenRitual = null;
+  simState.unluckyStreak = nextResult.kind === "implicit" ? 0 : simState.unluckyStreak + 1;
+  simState.outcomeCounts[nextResult.kind] += 1;
+  if (nextResult.kind === "implicit" && nextResult.rolledMods.length) {
+    const key = nextResult.rolledMods.join(" | ");
+    const existing = simState.implicitHistory.find((entry) => entry.key === key);
+    if (existing) {
+      existing.count += 1;
+      existing.result = nextResult;
+    } else {
+      simState.implicitHistory.unshift({ key, result: nextResult, count: 1 });
+    }
+  }
   $("sim-share-status").textContent = "Share the item, outcome, and attempt count.";
   renderSimulator();
 });
+for (const button of document.querySelectorAll("[data-ritual]")) {
+  button.addEventListener("click", () => {
+    if (!simState.ritualAvailable) return;
+    const key = button.dataset.ritual;
+    simState.ritualCounts[key] += 1;
+    simState.ritualAvailable = false;
+    simState.chosenRitual = key;
+    renderSimulator();
+  });
+}
 $("sim-reset").addEventListener("click", () => {
   simState.attempts = 0;
   simState.result = null;
+  simState.ritualCounts = { toucan: 0, kuduku: 0, chris: 0 };
+  simState.ritualAvailable = false;
+  simState.chosenRitual = null;
+  simState.unluckyStreak = 0;
+  simState.outcomeCounts = { implicit: 0, socket: 0, rare: 0, nothing: 0, destroyed: 0 };
+  simState.implicitHistory = [];
   $("sim-share-status").textContent = "Share the item, outcome, and attempt count.";
   renderSimulator();
 });

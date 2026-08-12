@@ -25,16 +25,21 @@ test("server-renders the calculator and simulator", async () => {
   assert.match(html, /Find an item/);
   assert.match(html, /Socket Color/i);
   assert.match(html, /Copy luck link/i);
+  assert.match(html, /Praise Toucan/i);
+  assert.match(html, /Praise Kuduku/i);
+  assert.match(html, /Pray to Chris/i);
+  assert.match(html, /Outcomes this run/i);
   assert.ok(html.indexOf('aria-label="Corruption simulator"') < html.indexOf('aria-label="Corruption chance calculator"'));
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
 test("GitHub Pages build contains the same simulator capabilities", async () => {
-  const [html, app, data, component] = await Promise.all([
+  const [html, app, data, component, unluckyImage] = await Promise.all([
     readFile(new URL("../docs/index.html", import.meta.url), "utf8"),
     readFile(new URL("../docs/app.js", import.meta.url), "utf8"),
     readFile(new URL("../docs/data.js", import.meta.url), "utf8"),
     readFile(new URL("../app/CorruptionSimulator.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../docs/chris-unlucky.png", import.meta.url)),
   ]);
 
   assert.match(html, /id="simulator"/);
@@ -44,6 +49,9 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(html, />CORRUPTED</);
   assert.match(html, /id="socket-color-label"/);
   assert.match(html, /id="destroyed-gif"/);
+  assert.match(html, /id="unlucky-reaction"/);
+  assert.match(html, /data-ritual="toucan"/);
+  assert.match(html, /id="implicit-history-list"/);
   assert.match(html, /media1\.tenor\.com\/m\/M3YRIg48Te0AAAAC/);
   assert.ok(html.indexOf('id="sim-implicit-block"') < html.indexOf('id="sim-item-art"'));
   assert.match(app, /simulateCorruption/);
@@ -51,14 +59,20 @@ test("GitHub Pages build contains the same simulator capabilities", async () => 
   assert.match(app, /simRolls/);
   assert.match(app, /simItem/);
   assert.match(app, /calculatorShell\.before\(simulatorShell\)/);
+  assert.match(app, /ritualAvailable/);
+  assert.match(app, /outcomeCounts/);
   assert.match(component, /rolledMods/);
   assert.match(component, /Math\.min\(first, second\)/);
   assert.match(component, /rare-bricked/);
-  assert.match(component, /result\?\.kind === "rare" \|\| result\?\.kind === "socket"\) && <p className="poe-corrupted">CORRUPTED/);
+  assert.match(component, /result\.kind === "rare" \? "KRANGLED" : "CORRUPTED"/);
   assert.match(component, /result\?\.kind === "rare" \? selectedItem\.baseType : selectedItem\.name/);
   assert.match(component, /className="socket-color-label">Socket Color/);
   assert.match(component, /result\.kind !== "rare"/);
   assert.match(component, /className="destroyed-gif"/);
+  assert.match(component, /Long unlucky streak/);
+  assert.match(component, /KRANGLED/);
+  assert.match(component, /entry\.count \/ attempts/);
+  assert.ok(unluckyImage.length > 1000);
   assert.match(data, /window\.GAME_ITEMS/);
   assert.match(data, /Shavronne's Wrappings/);
 });

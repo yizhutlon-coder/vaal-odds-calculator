@@ -263,6 +263,17 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .corrupt-button:hover { filter: brightness(1.08); }
 .corrupt-button:active { translate: 0 1px; }
 .reset-button { color: #746b60; background: transparent; border-color: #aaa08e; }
+.ritual-panel { margin-top: 12px; padding-top: 12px; border-top: 1px solid #c8bdab; }
+.ritual-heading { margin-bottom: 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ritual-heading > span { color: #766a5c; font-size: 8px; font-weight: 900; letter-spacing: .15em; }
+.ritual-heading > small { color: #8b8173; font-size: 8px; }
+.ritual-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ritual-actions button { min-height: 48px; padding: 8px 9px; display: flex; align-items: center; justify-content: space-between; gap: 7px; color: #685e51; border: 1px solid #b3a794; background: rgba(255,255,255,.18); font-size: 8px; font-weight: 850; line-height: 1.15; text-align: left; text-transform: uppercase; cursor: pointer; }
+.ritual-actions button strong { min-width: 23px; height: 23px; display: grid; place-items: center; color: #8d2727; border: 1px solid rgba(141,39,39,.32); border-radius: 50%; font-size: 9px; }
+.ritual-actions button:hover:not(:disabled) { color: #7d1f22; border-color: #8d2727; background: rgba(141,39,39,.06); }
+.ritual-actions button:disabled { opacity: .48; cursor: not-allowed; }
+.ritual-actions button.chosen:disabled { color: #f2e5cf; border-color: #7d1f22; background: #7d1f22; opacity: 1; }
+.ritual-actions button.chosen strong { color: #fff0d8; border-color: rgba(255,255,255,.35); }
 
 .simulator-stage {
   color: #eee3ce;
@@ -320,6 +331,30 @@ select:focus, input:focus-visible { border-color: var(--blood); box-shadow: 0 0 
 .result-overlay.rare > strong { color: #e4c445; }
 .result-overlay.destroyed { border-color: rgba(213,66,56,.25); border-left-color: rgba(213,66,56,.68); background: rgba(8,7,7,.64); }
 .result-overlay.destroyed > strong { color: #d54238; }
+.unlucky-reaction { width: min(100%, 430px); margin: -10px auto 18px; display: grid; grid-template-columns: 132px 1fr; overflow: hidden; border: 1px solid #60443d; background: rgba(12,10,9,.78); box-shadow: 0 12px 26px rgba(0,0,0,.24); }
+.unlucky-reaction[hidden] { display: none; }
+.unlucky-reaction img { width: 132px; height: 90px; display: block; object-fit: cover; }
+.unlucky-reaction > div { padding: 11px 13px; display: flex; flex-direction: column; justify-content: center; }
+.unlucky-reaction span { color: #9b7567; font-size: 7px; font-weight: 900; letter-spacing: .15em; }
+.unlucky-reaction strong { margin-top: 3px; color: #dfc6a7; font: 600 15px/1.1 var(--font-display), serif; text-transform: uppercase; }
+.unlucky-reaction p { margin: 4px 0 0; color: #948779; font-size: 9px; }
+.run-ledger { width: min(100%, 430px); margin: 0 auto 18px; border: 1px solid #403c35; background: rgba(8,8,7,.42); }
+.run-ledger-heading, .implicit-history-heading { padding: 10px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid #403c35; }
+.run-ledger-heading span, .implicit-history-heading span { color: #9c9488; font-size: 8px; font-weight: 900; letter-spacing: .14em; }
+.run-ledger-heading strong { color: #d9b773; font-size: 9px; }
+.outcome-counts { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid #403c35; }
+.outcome-counts div { min-width: 0; padding: 10px 5px; display: grid; gap: 4px; text-align: center; }
+.outcome-counts div + div { border-left: 1px solid #322f2a; }
+.outcome-counts span { color: #777067; font-size: 7px; line-height: 1.15; text-transform: uppercase; }
+.outcome-counts strong { color: #d3c7b5; font: 600 17px/1 var(--font-display), serif; }
+.implicit-history-heading { border-bottom: 0; }
+.implicit-history-heading small { color: #70695f; font-size: 7px; }
+.implicit-history > p { margin: 0; padding: 4px 12px 12px; color: #777067; font-size: 9px; }
+.implicit-history-list { max-height: 168px; overflow-y: auto; }
+.implicit-history-list button { width: 100%; padding: 9px 12px; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 9px; color: #8888ff; border: 0; border-top: 1px solid #292723; background: rgba(40,40,70,.12); font: 600 9px/1.3 var(--font-display), serif; text-align: left; text-transform: uppercase; cursor: pointer; }
+.implicit-history-list button:hover { background: rgba(80,80,150,.2); }
+.implicit-history-list button strong { color: #bab4ff; font-size: 9px; }
+.implicit-history-list button small { color: #777067; font: 700 8px/1 var(--font-sans), sans-serif; }
 .simulator-readout { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #403c35; border-bottom: 1px solid #403c35; }
 .simulator-readout div { padding: 14px 12px; display: flex; justify-content: space-between; gap: 12px; }
 .simulator-readout div + div { border-left: 1px solid #403c35; }
@@ -431,6 +466,13 @@ footer a:hover { color: var(--blood); }
   .cost-inputs, .cost-results { padding: 32px 22px 36px; }
   .simulator-controls, .simulator-stage { padding: 32px 22px 36px; }
   .simulator-actions { grid-template-columns: 1fr; }
+  .ritual-actions { grid-template-columns: 1fr; }
+  .ritual-actions button { min-height: 42px; }
+  .outcome-counts { grid-template-columns: repeat(3, 1fr); }
+  .outcome-counts div:nth-child(4) { border-left: 0; border-top: 1px solid #322f2a; }
+  .outcome-counts div:nth-child(5) { border-top: 1px solid #322f2a; }
+  .unlucky-reaction { grid-template-columns: 104px 1fr; }
+  .unlucky-reaction img { width: 104px; height: 88px; }
   .item-display { min-height: 430px; }
   .poe-nameplate h3 { font-size: 18px; }
   .poe-nameplate strong { font-size: 15px; }

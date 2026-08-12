@@ -122,6 +122,14 @@
             <button id="corrupt-button" type="button" class="corrupt-button">USE VAAL ORB</button>
             <button id="sim-reset" type="button" class="reset-button">Reset run</button>
           </div>
+          <div class="ritual-panel" aria-label="Pre-corruption rituals">
+            <div class="ritual-heading"><span>RITUALS</span><small id="ritual-status">Corrupt once to earn a ritual</small></div>
+            <div class="ritual-actions">
+              <button type="button" data-ritual="toucan" disabled><span>Praise Toucan</span><strong id="ritual-count-toucan">0</strong></button>
+              <button type="button" data-ritual="kuduku" disabled><span>Praise Kuduku</span><strong id="ritual-count-kuduku">0</strong></button>
+              <button type="button" data-ritual="chris" disabled><span>Pray to Chris</span><strong id="ritual-count-chris">0</strong></button>
+            </div>
+          </div>
         </div>
 
         <div class="simulator-stage">
@@ -140,8 +148,24 @@
             </div>
             <a id="destroyed-gif" class="destroyed-gif" href="https://tenor.com/view/%E3%81%A1%E3%81%84%E3%81%8B%E3%82%8F-%E3%83%8F%E3%83%81%E3%83%AF%E3%83%AC-gif-26619000" target="_blank" rel="noreferrer" aria-label="Open the destroyed-item animation on Tenor" hidden><img src="https://media1.tenor.com/m/M3YRIg48Te0AAAAC/%E3%81%A1%E3%81%84%E3%81%8B%E3%82%8F-%E3%83%8F%E3%83%81%E3%83%AF%E3%83%AC.gif" alt="Cartoon reaction to the item being destroyed" /></a>
           </div>
+          <div id="unlucky-reaction" class="unlucky-reaction" role="status" hidden><img src="chris-unlucky.png" alt="Chris Wilson watching over an unlucky corruption streak" /><div><span>THE VISION ENDURES</span><strong>Long unlucky streak</strong><p><b id="unlucky-count">10</b> attempts without an implicit.</p></div></div>
           <div id="result-overlay" class="result-overlay" hidden>
             <span id="result-kicker">VAAL RESULT</span><strong id="result-title"></strong><p id="result-detail"></p>
+          </div>
+          <div class="run-ledger" aria-label="Outcomes this run">
+            <div class="run-ledger-heading"><span>THIS RUN</span><strong id="run-attempts">0 attempts</strong></div>
+            <div class="outcome-counts">
+              <div><span>Implicit</span><strong id="outcome-count-implicit">0</strong></div>
+              <div><span>Socket Color</span><strong id="outcome-count-socket">0</strong></div>
+              <div><span>Krangled</span><strong id="outcome-count-rare">0</strong></div>
+              <div><span>No Change</span><strong id="outcome-count-nothing">0</strong></div>
+              <div><span>Destroyed</span><strong id="outcome-count-destroyed">0</strong></div>
+            </div>
+            <div class="implicit-history">
+              <div class="implicit-history-heading"><span>IMPLICIT ROLLS</span><small>Click one to view</small></div>
+              <div id="implicit-history-list" class="implicit-history-list"></div>
+              <p id="implicit-history-empty">No implicit outcomes yet.</p>
+            </div>
           </div>
           <div class="simulator-readout">
             <div><span>Eligible implicits</span><strong id="sim-eligible"></strong></div>
